@@ -4,6 +4,7 @@ import fontforge
 import optparse
 import sys
 import os, os.path
+import itertools
 
 def parse_args():
     "Parse the arguments the user passed in"
@@ -29,33 +30,47 @@ def extraction_demo(fname,letter):
     # Result was 1: so there is exactly one contour. If there were more, we'd
     # loop through them each in turn.
     contour = layer[0]
-    for point in contour:
-        pointlist.append([(point.x,point.y),point.on_curve])
-        print "({},{}) is an {}-curve point".format(point.x, point.y, ("on" if point.on_curve else "off"))
-    return pointlist
+    points = list(contour)
+    return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
     # one point talks about "the TrueType idiom where an on-curve point mid-way
     # between its control points may be omitted, leading to a run of off-curve
     # points (with implied but unspecified on-curve points between them)."
-    
-def averagepoint(point1,point2):
-    avgpoint=[]
-    i=0
-    while i<len(point1):
-        avgpoint.append((point1[i]+point2[i])/2.0)
-        i=i+1
-    return tuple(avgpoint)
+
+def averagepoint(point1, point2):
+    avgx = (point1.x + point2.x) / 2.0
+    avgy = (point1.y + point2.y) / 2.0
+    avgpoint = fontforge.point(avgx, avgy, True)
+    return avgpoint
+
+def pairwise(source):
+    source2 = source[1:]
+    source2 = itertools.islice(source, 1, None)
+    for a, b in itertools.izip(source, source2):
+        yield (a, b)
 
 if __name__ == "__main__":
     opts, args = parse_args()
     points=extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0x1015)
-    i=0
-    while i<len(points)-1:
-        if points[i][1]==0 and points[i+1][1]==0:
-            points=points[:i+1]+[[averagepoint(points[i][0],points[i+1][0]),1]]+points[i+1:]
-        i=i+1
+    result = []
+    for a, b in pairwise(points):
+        if a.on_curve or b.on_curve:
+            # No need to extrapolate for this pair
+            result.append(a)
+        else:
+            midpoint = averagepoint(a, b)
+            result.append(a)
+            result.append(midpoint)
+    # Last point will not have been part of any pairs, so it won't have been
+    # appended. Append it now.
+    result.append(points[-1])
+    print "Original points list:"
     print points
+    print
+    print "Points list with interpolated on-curve points:"
+    print result
+
 #    if not os.path.exists(opts.inputfilenamappend(e):
 #        print "File {} not found or not accessible".format(opts.inputfilename)
 #        sys.exit(2)
