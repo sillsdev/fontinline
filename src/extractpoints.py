@@ -26,8 +26,9 @@ def parse_args():
 # Extending this function to arbitrary fonts and glyphs is left as an exercise
 # for the reader. ;-)
 def extraction_demo(fname,letter):
-    pointlist=[]
     padauk = fontforge.open(fname)
+    global args
+    args.em = padauk.em
     pa = padauk[letter] # U+1015 MYANMAR LETTER PA
     layer = pa.foreground
     print "U+1015 has {} layer(s)".format(len(layer))
@@ -103,7 +104,7 @@ def vectorpairs_to_pointlist(pairs):
     return [pair[0] for pair in pairs] + [pairs[-1][-1]]
 
 def ff_to_tuple(ffpointlist):
-    return [(p.x, p.y) for p in ffpointlist]
+    return [(p.x, args.em-p.y) for p in ffpointlist]
 
 def polydraw(points):
     polylines = [points]
@@ -121,31 +122,17 @@ def make_svg(polylines):
     subprocess.call(['inkscape', 'tryme.svg'])
     print "Did it work? You tell me, I'm just a computer so I can't tell."
 
+def main():
+    global args
+    args = parse_args()
+    extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0x105c)
+    return 0
 
 if __name__ == "__main__":
-    #args = parse_args()  # Not yet used
-    extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0x104f)
-
-if False:
-    import svgwrite
-    svg = svgwrite.Drawing(filename = "tryme.svg")
-    polyline = svgwrite.shapes.Polyline(points, stroke="black", stroke_width=10, fill="white")
-    svg.add(polyline)
-    svg.save()
-    import subprocess
-    print "About to load inkscape, please wait a bit..."
-    subprocess.call(['inkscape', 'tryme.svg'])
-    print "Did it work? You tell me, I'm just a computer so I can't tell."
-    if not result[0].on_curve:
-        result.append(result[1])
-        # And now make sure we START with an on-curve point
-        result = result[1:]
-    print "Original points list:"
-    print points
-    print
-    print "Points list with interpolated on-curve points:"
-    print result
-
+    retcode=main()
+    if retcode!=0:
+        sys.exit(retcode)
+    
 #    if not os.path.exists(opts.inputfilenamappend(e):
 #        print "File {} not found or not accessible".format(opts.inputfilename)
 #        sys.exit(2)
