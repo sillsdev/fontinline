@@ -18,8 +18,21 @@ def parse_args():
     parser.add_argument("inputfilename", nargs="?", default=DEFAULT_FONT, help="Font file (SFD or TTF format)")
     parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name to extract")
     args = parser.parse_args()
-    args.exportname = args.glyphname + '.svg'
+    args.svgfilename = args.glyphname + '.svg'
+    args.datfilename = args.glyphname + '.dat'
     return args
+
+def savepoints(pointlist):
+    if pointlist[0] == pointlist[-1]:
+        del pointlist[-1]
+    f = file(args.datfilename, 'w')
+    for point in pointlist:
+        try:
+            x, y = point.x, point.y
+        except AttributeError:
+            x, y = point[0], point[1]
+        f.write("{} {}\n".format(x,y))
+    f.close()
 
 # Demo of how to extract the control points from a font.
 # Run "sudo apt-get install fonts-sil-padauk" before calling this function.
@@ -42,7 +55,10 @@ def extraction_demo(fname,letter):
 
         polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polylines.append(polyline)
-    make_svg(polylines)
+    #make_svg(polylines)
+    savepoints(polylines[0])
+    import subprocess
+    subprocess.call(['python', '../../python-poly2tri/test.py', args.datfilename, '0', '0', '0.4'])
     return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
@@ -54,6 +70,12 @@ def averagepoint(point1, point2):
     avgx = (point1.x + point2.x) / 2.0
     avgy = (point1.y + point2.y) / 2.0
     avgpoint = fontforge.point(avgx, avgy, True)
+    return avgpoint
+
+def averagepoint_astuple(point1, point2):
+    avgx = (point1[0] + point2[0]) / 2.0
+    avgy = (point1[1] + point2[1]) / 2.0
+    avgpoint = (avgx, avgy)
     return avgpoint
 
 def pairwise(source):
@@ -125,14 +147,14 @@ def make_svg(polylines):
 def main():
     global args
     args = parse_args()
-    extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0x105c)
+    extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0xaa75)
     return 0
 
 if __name__ == "__main__":
     retcode=main()
     if retcode!=0:
         sys.exit(retcode)
-    
+
 #    if not os.path.exists(opts.inputfilenamappend(e):
 #        print "File {} not found or not accessible".format(opts.inputfilename)
 #        sys.exit(2)
