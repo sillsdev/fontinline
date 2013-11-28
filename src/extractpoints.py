@@ -22,10 +22,12 @@ def parse_args():
     args.datfilename = args.glyphname + '.dat'
     return args
 
-def savepoints(pointlist):
+def savepoints(pointlist, filename=None):
     if pointlist[0] == pointlist[-1]:
         del pointlist[-1]
-    f = file(args.datfilename, 'w')
+    if filename is None:
+        filename = args.datfilename
+    f = file(filename, 'w')
     for point in pointlist:
         try:
             x, y = point.x, point.y
