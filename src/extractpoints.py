@@ -213,6 +213,18 @@ def extrapolate_midpoints(points):
     result.append(points[-1])
     return result
 
+def subdividebezier(points,n):
+    if n<=0:
+        yield "you cannot subdivide into less than one piece"
+    if not type(n)==int:
+        yield "you cannot subdivide into a non-integer number of pieces"
+    i=0
+    while i<=n:
+        result1 = ((n-i)**2)*points[0][0]+2*i*(n-i)*points[1][0]+i*i*points[2][0]
+        result2 = ((n-i)**2)*points[0][1]+2*i*(n-i)*points[1][1]+i*i*points[2][1]
+        yield (result1/(n*n),result2/(n*n))
+        i=i+1
+
 def extractbeziers(points):
     i=0
     while i<len(points)-1:
