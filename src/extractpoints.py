@@ -46,13 +46,13 @@ def savepoints(pointlist, filename=None):
 # Extending this function to arbitrary fonts and glyphs is left as an exercise
 # for the reader. ;-)
 
-def levels(polylines):
+def calculate_parents(polylines):
     if polylines==[]:
         return []
     polygons=[]
     for i in polylines:
         d=dict()
-        d['poly']=Polygon(i)
+        d['poly']=Polygon(ff_to_tuple(i))
         d['line']=i
         d['children']=[]
         d['parents']=[]
@@ -76,7 +76,7 @@ def levels(polygons):
         result[i['level']].append(i)
     return result
 
-def immediateparent(levels):
+def calculateimmediateparent(levels):
     for i, item in enumerate(levels[1:]):
         for polyline in item:
             for parent in polyline['parents']:
@@ -84,7 +84,7 @@ def immediateparent(levels):
                     polyline['immediateparent']=parent
     return levels
 
-def immediatechildren(levels):
+def calculateimmediatechildren(levels):
     for i, item in enumerate(levels):
         if i==len(levels)-1:
             break
@@ -105,7 +105,7 @@ def extraction_demo(fname,letter):
         # Should use args.glyphname for this...
         letter = glyph.glyphname
     if letter.startswith('U+'):
-        codepoint = int(glyphname[2:], 16)
+        codepoint = int(args.glyphname[2:], 16)
         glyph = padauk[codepoint]
         # Should use args.glyphname for this...
         letter = glyph.glyphname
@@ -115,7 +115,8 @@ def extraction_demo(fname,letter):
     # Result was 1: so there is exactly one contour. If there were more, we'd
     # loop through them each in turn.
     polylines = []
-    holes = []
+    triangles = []
+    #holes = []
     for contour in layer:
         points = list(contour)
         pointlist_with_midpoints = extrapolate_midpoints(points)
@@ -123,16 +124,23 @@ def extraction_demo(fname,letter):
 
         #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polyline = vectorpairs_to_pointlist(vectors)
-        if contour.isClockwise():
-            polylines.append(polyline)
-        else:
-            holes.append(polyline)
+        polylines.append(polyline)  # This includes "real" polys and holes, both
+    parent_data = calculate_parents(polylines)
+    level_data = levels(parent_data)
+    level_data = calculateimmediatechildren(level_data)
+    for level in level_data[::2]:
+        for poly in level:
+            triangles.extend(make_triangles(poly, poly.get('immediatechildren', [])))
+        #if contour.isClockwise():
+            #polylines.append(polyline)
+        #else:
+            #holes.append(polyline)
     #make_svg(polylines)
     #savepoints(polylines[0])
     #import subprocess
     #subprocess.call(['python', '../../python-poly2tri/test.py', args.datfilename, '0', '0', '0.4'])
-    triangles = make_triangles(polylines, holes)
-    draw_all(polylines, holes, triangles)
+    #triangles = make_triangles(polylines, holes)
+    draw_all(polylines, [], triangles)
     return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
@@ -161,18 +169,35 @@ def convert_polyline_to_polytri_version(polyline):
         result.append(p2t.Point(x, y))
     return result
 
-def make_triangles(polylines, holes=None):
+def are_points_equal(a, b, epsilon=1e-9):
+    """Compares points a and b and returns true if they're equal.
+
+    "Equal", here, is defined as "the difference is less than epsilon" since
+    we're dealing with floats.
+
+    Points a and b can be either Fontforge point objects, or tuples."""
+    try:
+        x1, y1 = a.x, a.y
+        x2, y2 = b.x, b.y
+    except AttributeError:
+        x1, y1 = a[0], a[1]
+        x2, y2 = b[0], b[1]
+    return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
+
+def make_triangles(polygon_data, holes=None):
     if holes is None:
         holes = []
     triangles = []
-    for polyline in polylines:
-        new_polyline = convert_polyline_to_polytri_version(polyline)
+    new_polyline = convert_polyline_to_polytri_version(polygon_data['line'])
+    if are_points_equal(new_polyline[-1], new_polyline[0]):
         del new_polyline[-1]
-        cdt = p2t.CDT(new_polyline)
-        for hole in holes:
+    cdt = p2t.CDT(new_polyline)
+    for hole_data in holes:
+        hole = hole_data['line']
+        if are_points_equal(hole[-1], hole[0]):
             del hole[-1]
-            cdt.add_hole(hole)
-        triangles.extend(cdt.triangulate())
+        cdt.add_hole(hole)
+    triangles.extend(cdt.triangulate())
     return triangles
 
 def draw_all(polylines, holes, triangles):
@@ -267,9 +292,9 @@ def extrapolate_midpoints(points):
 
 def subdividebezier(points,n):
     if n<=0:
-        yield "you cannot subdivide into less than one piece"
+        raise ValueError("you cannot subdivide into less than one piece")
     if not type(n)==int:
-        yield "you cannot subdivide into a non-integer number of pieces"
+        raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i=0
     while i<=n:
         result1 = ((n-i)**2)*points[0][0]+2*i*(n-i)*points[1][0]+i*i*points[2][0]
@@ -303,7 +328,7 @@ def vectorpairs_to_pointlist(pairs):
     return [pair[0] for pair in pairs] + [pairs[-1][-1]]
 
 def ff_to_tuple(ffpointlist):
-    return [(p.x, args.em-p.y) for p in ffpointlist]
+    return [(p.x, p.y) for p in ffpointlist]
 
 def polydraw(points):
     polylines = [points]
@@ -324,7 +349,8 @@ def make_svg(polylines):
 def main():
     global args
     args = parse_args()
-    extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0xaa75)
+    extraction_demo(args.inputfilename, args.glyphname)
+    #extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0xaa75)
     #extraction_demo('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',0x0e3f)
     return 0
 
