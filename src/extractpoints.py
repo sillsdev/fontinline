@@ -6,6 +6,8 @@ import argparse
 import sys
 import os, os.path
 import itertools
+import shapely
+from shapely.geometry.polygon import Polygon
 sys.path.append('../../python-poly2tri')
 import p2t
 sys.path.remove('../../python-poly2tri')
@@ -43,6 +45,56 @@ def savepoints(pointlist, filename=None):
 # Run "sudo apt-get install fonts-sil-padauk" before calling this function.
 # Extending this function to arbitrary fonts and glyphs is left as an exercise
 # for the reader. ;-)
+
+def levels(polylines):
+    if polylines=[]:
+        return []
+    polygons=[]
+    for i in polylines:
+        d=dict()
+        d['poly']=Polygon(i)
+        d['line']=i
+        d['children']=[]
+        d['parents']=[]
+        polygons.append(d)
+    for a,b in itertools.permutations(polygons,2):
+        if a['poly'].within(b['poly']):
+            a['parents'].append(b)
+            b['children'].append(a)
+    return polygons
+
+def levels(polygons):
+    maxdepth=-1
+    for item in polygons:
+        item['level']=len(item['parents'])
+        maxdepth=max(maxdepth,item['level'])
+    result=[]
+    #result should go from 0 to maxdepth inclusive.
+    for i in range(maxdepth+1):
+        result.append([])
+    for i in polygons:
+        result[i['level']].append(i)
+    return result
+
+def immediateparent(levels):
+    for i, item in enumerate(levels[1:]):
+        for polyline in item:
+            for parent in polyline['parents']:
+                if parent in levels[i]:
+                    polyline['immediateparent']=parent
+    return levels
+
+def immediatechildren(levels):
+    for i, item in enumerate(levels):
+        if i==len(levels)-1:
+            break
+        for polyline in item:
+            polyline['immediatechildren']=[]
+            for child in polyline['children']:
+                if child in levels[i+1]:
+                    polyline['immediatechildren'].append(child)
+    return levels
+
 def extraction_demo(fname,letter):
     padauk = fontforge.open(fname)
     global args
