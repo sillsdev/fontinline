@@ -29,6 +29,8 @@ def parse_args():
     return args
 
 def savepoints(pointlist, filename=None):
+    """Saves the points to a file that is called f. Also makes sure starting point is not equal to ending point
+    This function accepts a list of tuples"""
     if pointlist[0] == pointlist[-1]:
         del pointlist[-1]
     if filename is None:
@@ -48,6 +50,9 @@ def savepoints(pointlist, filename=None):
 # for the reader. ;-)
 
 def calculate_parents(polylines):
+    """This function takes a list of fontforge points and turns it into a list of dictionaries.
+    Each dictionary has the polygon, the list of points, the children (the polygons inside the
+    given polygon, and the parents (the polygons containing the given polygon)"""
     if polylines==[]:
         return []
     polygons=[]
@@ -65,6 +70,9 @@ def calculate_parents(polylines):
     return polygons
 
 def levels(polygons):
+    """This function takes a list of dictionaries from the parentsandchildren function
+    and turns it into a list of lists of dictionaries. Each inner list is the list of
+    the dictionaries corresponding to the polylines at the level of the index of the list."""
     maxdepth=-1
     for item in polygons:
         item['level']=len(item['parents'])
@@ -78,6 +86,9 @@ def levels(polygons):
     return result
 
 def calculateimmediateparent(levels):
+    """This function takes a list of lists of dictionaries given by the levels function
+    and adds the key "immediate parents" to each of the dictionaries, which gives the
+    innermost polyline containing the given polyline"""
     for i, item in enumerate(levels[1:]):
         for polyline in item:
             for parent in polyline['parents']:
@@ -86,6 +97,9 @@ def calculateimmediateparent(levels):
     return levels
 
 def calculateimmediatechildren(levels):
+    """This function takes a list of lists of dictionaries given by the levels function
+    and adds the key "immediate children" to each of the dictionaries, which gives the
+    outermost polyline inside the given polyline"""
     for i, item in enumerate(levels):
         if i==len(levels)-1:
             break
@@ -136,7 +150,6 @@ def extraction_demo(fname,letter):
             #polylines.append(polyline)
         #else:
             #holes.append(polyline)
-    #make_svg(polylines)
     #savepoints(polylines[0])
     #import subprocess
     #subprocess.call(['python', '../../python-poly2tri/test.py', args.datfilename, '0', '0', '0.4'])
@@ -150,6 +163,8 @@ def extraction_demo(fname,letter):
     # points (with implied but unspecified on-curve points between them)."
 
 def flip_polyline(polyline):
+    """This function takes a list of tuples (the polyline), and inverts the y coordinate of each point
+    because the coordinate systems for fontforge are different than the coordinate systems for the p2t program."""
     result = []
     for point in polyline:
         try:
@@ -161,6 +176,8 @@ def flip_polyline(polyline):
     return result
 
 def convert_polyline_to_polytri_version(polyline):
+    """Converts points to p2t points that poly2tri can deal with
+    This function accepts tuples or fontforge points"""
     result = []
     for point in polyline:
         try:
@@ -186,6 +203,9 @@ def are_points_equal(a, b, epsilon=1e-9):
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
 def make_triangles(polygon_data, holes=None):
+    """This function takes a dictionary, and an optional holes parameter
+    that determines the holes of a polyline, and tesselates the polyline
+    into triangles. This is an intermediate step to calculating the midpoints"""
     if holes is None:
         holes = []
     triangles = []
@@ -202,6 +222,8 @@ def make_triangles(polygon_data, holes=None):
     return triangles
 
 def draw_all(polylines, holes, triangles):
+    """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.
+    This function is pending deprecation."""
     import pygame
     from pygame.gfxdraw import trigon, line
     from pygame.locals import *
@@ -259,23 +281,28 @@ def draw_all(polylines, holes, triangles):
 
 
 def averagepoint(point1, point2):
+    """This function takes two fontforge points, and finds the average of them"""
     avgx = (point1.x + point2.x) / 2.0
     avgy = (point1.y + point2.y) / 2.0
     avgpoint = fontforge.point(avgx, avgy, True)
     return avgpoint
 
 def averagepoint_astuple(point1, point2):
+    """This function takes two tuples, and returns the average of them"""
     avgx = (point1[0] + point2[0]) / 2.0
     avgy = (point1[1] + point2[1]) / 2.0
     avgpoint = (avgx, avgy)
     return avgpoint
 
 def pairwise(source):
+    """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
     source2 = itertools.islice(source, 1, None)
     for a, b in itertools.izip(source, source2):
         yield (a, b)
 
 def extrapolate_midpoints(points):
+    """This function takes a list of fontforge points and if two consecutive points are off-curve
+    it extrapolates the on-curve point between them."""
     if not (points[-1] == points[0]):
         points.append(points[0])  # Close the curve
     result = []
@@ -292,7 +319,23 @@ def extrapolate_midpoints(points):
     result.append(points[-1])
     return result
 
+def subdivideline(points,n):
+    """This function takes a list of tuples or lists and finds n-1 evenly spaced points (tuples)
+    along the line that connects them in between the two points"""
+    if n<=0:
+        raise ValueError("you cannot subdivide into less than one piece")
+    if not type(n)==int:
+        raise ValueError("you cannot subdivide into a non-integer number of pieces")
+    i=0
+    while i<=n:
+        result1=(n-i)*points[0][0]+i*points[1][0]
+        result2=(n-i)*points[0][1]+i*points[1][1]
+        yield (result1/n,result2/n)
+        i=i+1
+
 def subdividebezier(points,n):
+    """This function takes three points (tuples), and yields n-1 evenly spaced
+    points (tuples) along the bezier defined by those points"""
     if n<=0:
         raise ValueError("you cannot subdivide into less than one piece")
     if not type(n)==int:
@@ -305,6 +348,7 @@ def subdividebezier(points,n):
         i=i+1
 
 def extractbeziers(points):
+    """This function takes a list of fontforge points and yields lists that contain single lines or beziers."""
     i=0
     while i<len(points)-1:
         # This appends a list of the two consecutive on-curve points with any off-curve points between them.
@@ -317,6 +361,9 @@ def extractbeziers(points):
         yield added_bezier
 
 def extractvectors(points):
+    # This function has been deprecated and will be removed in later versions.
+    # It will be replaced with subdividebezier and subdivideline
+    raise DeprecationWarning
     points = list(points)
     for candidate in extractbeziers(points):
         if len(candidate) == 2:
@@ -326,31 +373,21 @@ def extractvectors(points):
             yield [candidate[0], candidate[-1]]
 
 def vectorpairs_to_pointlist(pairs):
+    """This function takes a list of pairs of points and turns it into a single list of points.
+    This function needs to be updated when we subdivide bezier curves"""
     pairs = list(pairs)
     if not pairs:
         return []
     return [pair[0] for pair in pairs] + [pairs[-1][-1]]
 
 def ff_to_tuple(ffpointlist):
+    """This function takes a list of fontforge points and turns it into a list of tuples.
+    This function needs to be updated to retain the oncurve-offcurve information"""
     return [(p.x, p.y) for p in ffpointlist]
 
-def polydraw(points):
-    polylines = [points]
-    make_svg(polylines)
-
-def make_svg(polylines):
-    import svgwrite
-    svg = svgwrite.Drawing(filename = "tryme.svg")
-    for polyline in polylines:
-        svgshape = svgwrite.shapes.Polyline(polyline, stroke="black", stroke_width=10, fill="white")
-        svg.add(svgshape)
-    svg.save()
-    import subprocess
-    print "About to load inkscape, please wait a bit..."
-    subprocess.call(['inkscape', 'tryme.svg'])
-    print "Did it work? You tell me, I'm just a computer so I can't tell."
-
 def main():
+    """This is the main function we use that calls extraction_demo and also runs
+    a sanity check to make sure everything works properly."""
     global args
     args = parse_args()
     extraction_demo(args.inputfilename, args.glyphname)
