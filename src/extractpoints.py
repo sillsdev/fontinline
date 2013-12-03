@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument('-v', '--verbose', action="store_true", help="Give more verbose error messages")
     parser.add_argument("inputfilename", nargs="?", default=DEFAULT_FONT, help="Font file (SFD or TTF format)")
     parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name to extract")
+    parser.add_argument('-z', '--zoom', action="store", type=float, default=1.0, help="Zoom level (default 1.0)")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'
@@ -211,7 +212,8 @@ def draw_all(polylines, holes, triangles):
     red = pygame.Color(255, 0, 0)
     green = pygame.Color(0, 255, 0)
     blue = pygame.Color(0, 0, 255)
-    ZOOM = 0.5  # Reduce size by half
+    global args
+    ZOOM = args.zoom
     for t in triangles:
         x1 = int(t.a.x * ZOOM)
         y1 = int((args.em-t.a.y) * ZOOM)
@@ -325,6 +327,8 @@ def extractvectors(points):
 
 def vectorpairs_to_pointlist(pairs):
     pairs = list(pairs)
+    if not pairs:
+        return []
     return [pair[0] for pair in pairs] + [pairs[-1][-1]]
 
 def ff_to_tuple(ffpointlist):
