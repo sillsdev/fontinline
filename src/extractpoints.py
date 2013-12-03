@@ -47,7 +47,7 @@ def savepoints(pointlist, filename=None):
 # for the reader. ;-)
 
 def levels(polylines):
-    if polylines=[]:
+    if polylines==[]:
         return []
     polygons=[]
     for i in polylines:
