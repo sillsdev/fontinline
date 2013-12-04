@@ -328,9 +328,9 @@ def subdivideline(points,n):
         raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i=0
     while i<=n:
-        result1=(n-i)*points[0][0]+i*points[1][0]
-        result2=(n-i)*points[0][1]+i*points[1][1]
-        yield (result1/n,result2/n)
+        result1=(n-i)*points[0].x+i*points[1].x
+        result2=(n-i)*points[0].y+i*points[1].y
+        yield fontforge.point(result1/n,result2/n, True)
         i=i+1
 
 def subdividebezier(points,n):
@@ -342,9 +342,9 @@ def subdividebezier(points,n):
         raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i=0
     while i<=n:
-        result1 = ((n-i)**2)*points[0][0]+2*i*(n-i)*points[1][0]+i*i*points[2][0]
-        result2 = ((n-i)**2)*points[0][1]+2*i*(n-i)*points[1][1]+i*i*points[2][1]
-        yield (result1/(n*n),result2/(n*n))
+        result1 = ((n-i)**2)*points[0].x+2*i*(n-i)*points[1].x+i*i*points[2].x
+        result2 = ((n-i)**2)*points[0].y+2*i*(n-i)*points[1].y+i*i*points[2].y
+        yield fontforge.point(result1/(n*n),result2/(n*n),True)
         i=i+1
 
 def extractbeziers(points):
@@ -361,16 +361,18 @@ def extractbeziers(points):
         yield added_bezier
 
 def extractvectors(points):
-    # This function has been deprecated and will be removed in later versions.
-    # It will be replaced with subdividebezier and subdivideline
-    raise DeprecationWarning
     points = list(points)
     for candidate in extractbeziers(points):
         if len(candidate) == 2:
             # It's a vector
-            yield candidate
+            subdivided=subdivideline(candidate,10)
+            for v in pairwise(subdivided):
+                yield v
         else:
-            yield [candidate[0], candidate[-1]]
+            #change this to variable later
+            subdivided=subdividebezier(candidate,10)
+            for v in pairwise(subdivided):
+                yield v
 
 def vectorpairs_to_pointlist(pairs):
     """This function takes a list of pairs of points and turns it into a single list of points.
