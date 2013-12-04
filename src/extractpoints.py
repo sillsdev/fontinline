@@ -7,6 +7,7 @@ import sys
 import os, os.path
 import itertools
 import shapely
+import warnings
 from shapely.geometry.polygon import Polygon
 sys.path.append('../../python-poly2tri')
 import p2t
@@ -111,22 +112,18 @@ def calculateimmediatechildren(levels):
     return levels
 
 def extraction_demo(fname,letter):
-    padauk = fontforge.open(fname)
+    font = fontforge.open(fname)
     global args
-    args.em = padauk.em
+    args.em = font.em
     if isinstance(letter, int):
         codepoint = letter
-        glyph = padauk[codepoint]
-        # Should use args.glyphname for this...
-        letter = glyph.glyphname
-    if letter.startswith('U+'):
-        codepoint = int(args.glyphname[2:], 16)
-        glyph = padauk[codepoint]
-        # Should use args.glyphname for this...
-        letter = glyph.glyphname
-    pa = padauk[letter] # U+1015 MYANMAR LETTER PA
+        glyph = font[codepoint]
+    elif letter.startswith('U+'):
+        codepoint = int(letter[2:], 16)
+        glyph = font[codepoint]
+    pa = font[codepoint] # U+1015 MYANMAR LETTER PA
     layer = pa.foreground
-    print "U+1015 has {} layer(s)".format(len(layer))
+    print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     # Result was 1: so there is exactly one contour. If there were more, we'd
     # loop through them each in turn.
     polylines = []
