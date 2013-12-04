@@ -8,6 +8,7 @@ import os, os.path
 import itertools
 import shapely
 import warnings
+import decimal
 from shapely.geometry.polygon import Polygon
 sys.path.append('../../python-poly2tri')
 import p2t
@@ -127,6 +128,7 @@ def extraction_demo(fname,letter):
     # Result was 1: so there is exactly one contour. If there were more, we'd
     # loop through them each in turn.
     polylines = []
+    polylines_set = set()
     triangles = []
     #holes = []
     for contour in layer:
@@ -137,6 +139,7 @@ def extraction_demo(fname,letter):
         #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polyline = vectorpairs_to_pointlist(vectors)
         polylines.append(polyline)  # This includes "real" polys and holes, both
+        polylines_set = polylines_set.union(closedpolyline2vectorset(polyline))
     parent_data = calculate_parents(polylines)
     level_data = levels(parent_data)
     level_data = calculateimmediatechildren(level_data)
@@ -151,7 +154,12 @@ def extraction_demo(fname,letter):
     #import subprocess
     #subprocess.call(['python', '../../python-poly2tri/test.py', args.datfilename, '0', '0', '0.4'])
     #triangles = make_triangles(polylines, holes)
-    draw_all(polylines, [], triangles)
+    triangles_set = triangles2vectorset(triangles)
+    midpoints_set = triangles_set - polylines_set
+    midpoints = [averagepoint_astuple(v[0], v[1]) for v in midpoints_set]
+    #draw_all(polylines, [], triangles)
+    #draw_all(polylines, [], [])
+    draw_midpoints(polylines, midpoints)
     return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
@@ -276,7 +284,96 @@ def draw_all(polylines, holes, triangles):
             done = True
             break
 
+def draw_midpoints(polylines, midpoints):
+    """This function takes the list of polylines and midpoints, and draws them in pygame."""
+    import pygame
+    from pygame.gfxdraw import trigon, line, pixel
+    from pygame.locals import *
+    SCREEN_SIZE = (1280,800)
+    pygame.init()
+    screen = pygame.display.set_mode(SCREEN_SIZE,0,8)
+    pygame.display.set_caption('Triangulation of glyph (name goes here)')
+    red = pygame.Color(255, 0, 0)
+    green = pygame.Color(0, 255, 0)
+    blue = pygame.Color(0, 0, 255)
+    global args
+    DECZOOM = decimal.Decimal(args.zoom)
+    ZOOM = args.zoom
+    for m in midpoints:
+        x = int(m[0] * DECZOOM)
+        y = int((args.em-m[1]) * DECZOOM)
+        print (x,y)
+        pixel(screen, x, y, red)
 
+    # Close the polylines loop again prior to drawing
+    for polyline in polylines:
+        polyline.append(polyline[0])
+        flipped = flip_polyline(polyline)
+        for a, b in pairwise(flipped):
+            x1 = int(a.x * ZOOM)
+            y1 = int(a.y * ZOOM)
+            x2 = int(b.x * ZOOM)
+            y2 = int(b.y * ZOOM)
+            line(screen, x1, y1, x2, y2, green)
+
+    # Show result and wait for keypress
+    pygame.display.update()
+    done = False
+    while not done:
+        e = pygame.event.wait()
+        if (e.type == QUIT):
+            done = True
+            break
+        elif (e.type == KEYDOWN):
+            done = True
+            break
+
+epsilon_decimal = decimal.Decimal('1e-9')
+def p2dt(point):
+    """Converts a point into a representation using a tuple of Python's Decimal objects."""
+    try:
+        x, y = point.x, point.y
+    except AttributeError:
+        x, y = point[0], point[1]
+    dx = decimal.Decimal(x).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
+    dy = decimal.Decimal(y).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
+    return (dx, dy)
+        
+def triangle2vectors(t):
+    """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
+    v1 = [p2dt(t.a), p2dt(t.b)]
+    v2 = [p2dt(t.b), p2dt(t.c)]
+    v3 = [p2dt(t.c), p2dt(t.a)]
+    v1 = tuple(sorted(v1))
+    v2 = tuple(sorted(v2))
+    v3 = tuple(sorted(v3))
+    return [v1, v2, v3]
+
+def closedpolyline2vectorset(polyline):
+    """Converts a polyline (which should be closed, i.e. the last point = the first point) to a set of vectors (as Decimal tuple pairs)."""
+    result = set()
+    l = list(polyline)  # Just in case it was a generator before...
+    for a, b in pairwise(l):
+        vector = [p2dt(a), p2dt(b)]
+        vector = tuple(sorted(vector))
+        result.add(vector)
+    return result
+
+def triangles2vectorset(triangles):
+    result = set()
+    for t in triangles:
+        for v in triangle2vectors(t):
+            result.add(v)
+    return result
+
+def vectorlength(point1, point2):
+    """This function takes two fontforge points, and returns the distance between them"""
+    xdiff=point1.x-point2.x
+    ydiff=point1.y-point2.y
+    squaredlength=xdiff**2+ydiff**2
+    length=squaredlength**0.5
+    return length
+    
 def averagepoint(point1, point2):
     """This function takes two fontforge points, and finds the average of them"""
     avgx = (point1.x + point2.x) / 2.0
@@ -286,8 +383,8 @@ def averagepoint(point1, point2):
 
 def averagepoint_astuple(point1, point2):
     """This function takes two tuples, and returns the average of them"""
-    avgx = (point1[0] + point2[0]) / 2.0
-    avgy = (point1[1] + point2[1]) / 2.0
+    avgx = (point1[0] + point2[0]) / decimal.Decimal(2)
+    avgy = (point1[1] + point2[1]) / decimal.Decimal(2)
     avgpoint = (avgx, avgy)
     return avgpoint
 
@@ -327,7 +424,7 @@ def subdivideline(points,n):
     while i<=n:
         result1=(n-i)*points[0].x+i*points[1].x
         result2=(n-i)*points[0].y+i*points[1].y
-        yield fontforge.point(result1/n,result2/n, True)
+        yield fontforge.point(result1/float(n),result2/float(n), True)
         i=i+1
 
 def subdividebezier(points,n):
@@ -341,7 +438,7 @@ def subdividebezier(points,n):
     while i<=n:
         result1 = ((n-i)**2)*points[0].x+2*i*(n-i)*points[1].x+i*i*points[2].x
         result2 = ((n-i)**2)*points[0].y+2*i*(n-i)*points[1].y+i*i*points[2].y
-        yield fontforge.point(result1/(n*n),result2/(n*n),True)
+        yield fontforge.point(result1/float(n*n),result2/float(n*n),True)
         i=i+1
 
 def extractbeziers(points):
@@ -362,12 +459,12 @@ def extractvectors(points):
     for candidate in extractbeziers(points):
         if len(candidate) == 2:
             # It's a vector
-            subdivided=subdivideline(candidate,10)
+            subdivided=list(subdivideline(candidate,1))
             for v in pairwise(subdivided):
                 yield v
         else:
             #change this to variable later
-            subdivided=subdividebezier(candidate,10)
+            subdivided=list(subdividebezier(candidate,1))
             for v in pairwise(subdivided):
                 yield v
 
