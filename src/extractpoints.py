@@ -117,12 +117,12 @@ def extraction_demo(fname,letter):
     args.em = font.em
     if isinstance(letter, int):
         codepoint = letter
-        glyph = font[codepoint]
     elif letter.startswith('U+'):
         codepoint = int(letter[2:], 16)
-        glyph = font[codepoint]
-    pa = font[codepoint] # U+1015 MYANMAR LETTER PA
-    layer = pa.foreground
+    else:
+        codepoint = letter
+    glyph = font[codepoint]
+    layer = glyph.foreground
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     # Result was 1: so there is exactly one contour. If there were more, we'd
     # loop through them each in turn.
