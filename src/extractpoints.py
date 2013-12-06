@@ -112,6 +112,77 @@ def calculateimmediatechildren(levels):
                     polyline['immediatechildren'].append(child)
     return levels
 
+def lowest(points):
+    lowest=points[0]
+    i=0
+    while i<len(lowest):
+        if lowest[1]>points[i][1]:
+            lowest=points[i]
+        i=i+1
+    return (lowest, i)
+
+def closer(point1,point2,point3):
+    if vectorlengthastuple(point1,point2)<vectorlengthastuple(point1,point3):
+        return point2
+    else:
+        return point3
+
+def closestpoint(point,points):
+    closest=points[0]
+    i=0
+    while i<len(points):
+        closest=closer(point,closest,points[i])
+        i=i+1
+    return (closest, i)
+
+def closesort2(points):
+    prevpoint=lowest(points)[0]
+    point=closestpoint(prevpoint,points)[0]
+    sortedpoints=[prevpoint,point]
+    del points[lowest(points)[1]]
+    if closestpoint(prevpoint,points)[1]==lowest(points)[1]:
+        pass
+    elif closestpoint(prevpoint,points)[1]>lowest(points)[1]:
+        del points[closestpoint(prevpoint,points)[1]-1]
+    else:
+        del points[closestpoint(prevpoint,points)[1]]
+    k=0
+    numberofpoints=len(points)
+    while k<numberofpoints:
+        nextpointapproximatelocation=(2*point[0]-prevpoint[0],2*point[1]-prevpoint[1])
+        closest=closestpoint(nextpointapproximatelocation,points)[0]
+        sortedpoints.append(closest)
+        prevpoint, point = point, closest
+        try:
+            del points[closestpoint(nextpointapproximatelocation,points)[1]]
+        except IndexError:
+            pass
+        k=k+1
+    return sortedpoints
+
+def closesort(points):
+    point=lowest(points)[0]
+    sortedpoints=[point]
+    del points[lowest(points)[1]]
+    k=0
+    numberofpoints=len(points)
+    while k<numberofpoints:
+        i=1
+        closest=points[0]
+        j=0
+        mindistance=vectorlengthastuple(closest,point)
+        while i<len(points):
+            length=vectorlengthastuple(points[i],point)
+            if length<mindistance:
+                closest=points[i]
+                mindistance=length
+                j=i
+            i=i+1
+        sortedpoints.append(closest)
+        del points[j]
+        k=k+1
+    return sortedpoints
+
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
     global args
@@ -157,9 +228,11 @@ def extraction_demo(fname,letter):
     triangles_set = triangles2vectorset(triangles)
     midpoints_set = triangles_set - polylines_set
     midpoints = [averagepoint_astuple(v[0], v[1]) for v in midpoints_set]
+    
     #draw_all(polylines, [], triangles)
     #draw_all(polylines, [], [])
-    draw_midpoints(polylines, midpoints)
+    #draw_midpoints([],midpoints)
+    draw_midpoints([closesort(midpoints)], midpoints)
     return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
@@ -177,7 +250,7 @@ def flip_polyline(polyline):
             result.append(point.__class__(x,y))
         except AttributeError:
             x, y = point[0], args.em-point[1]
-            result.append(tuple(x,y))
+            result.append(tuple([x,y]))
     return result
 
 def convert_polyline_to_polytri_version(polyline):
@@ -241,6 +314,7 @@ def draw_all(polylines, holes, triangles):
     blue = pygame.Color(0, 0, 255)
     global args
     ZOOM = args.zoom
+
     for t in triangles:
         x1 = int(t.a.x * ZOOM)
         y1 = int((args.em-t.a.y) * ZOOM)
@@ -307,8 +381,10 @@ def draw_midpoints(polylines, midpoints):
 
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
-        polyline.append(polyline[0])
+        #polyline.append(polyline[0])
         flipped = flip_polyline(polyline)
+        flipped=map(p2dt,flipped)
+        flipped=convert_polyline_to_polytri_version(flipped)
         for a, b in pairwise(flipped):
             x1 = int(a.x * ZOOM)
             y1 = int(a.y * ZOOM)
@@ -365,6 +441,14 @@ def triangles2vectorset(triangles):
         for v in triangle2vectors(t):
             result.add(v)
     return result
+
+def vectorlengthastuple(point1, point2):
+    """This function takes two fontforge points, and returns the distance between them"""
+    xdiff=float(point1[0]-point2[0])
+    ydiff=float(point1[1]-point2[1])
+    squaredlength=xdiff**2+ydiff**2
+    length=squaredlength**0.5
+    return length
 
 def vectorlength(point1, point2):
     """This function takes two fontforge points, and returns the distance between them"""
@@ -459,12 +543,12 @@ def extractvectors(points):
     for candidate in extractbeziers(points):
         if len(candidate) == 2:
             # It's a vector
-            subdivided=list(subdivideline(candidate,1))
+            subdivided=list(subdivideline(candidate,20))
             for v in pairwise(subdivided):
                 yield v
         else:
             #change this to variable later
-            subdivided=list(subdividebezier(candidate,1))
+            subdivided=list(subdividebezier(candidate,20))
             for v in pairwise(subdivided):
                 yield v
 
