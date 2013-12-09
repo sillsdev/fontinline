@@ -13,7 +13,7 @@ import itertools
 import shapely
 import warnings
 import decimal
-from shapely.geometry.polygon import Polygon
+from shapely.geometry import Polygon, LineString
 sys.path.append('../../python-poly2tri')
 import p2t
 sys.path.remove('../../python-poly2tri')
@@ -53,6 +53,17 @@ def savepoints(pointlist, filename=None):
             x, y = point[0], point[1]
         f.write("{} {}\n".format(x,y))
     f.close()
+
+def is_within(line, polygon):
+    if isinstance(line, LineString):
+        pass
+    else:
+        line = LineString(ff_to_tuple(line))
+    if isinstance(polygon, Polygon):
+        pass
+    else:
+        polygon = Polygon(ff_to_tuple(polygon))
+    return line.difference(polygon).is_empty
 
 # Demo of how to extract the control points from a font.
 # Run "sudo apt-get install fonts-sil-padauk" before calling this function.
