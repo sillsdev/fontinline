@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 import fontforge
+import pygame
+import time
+from pygame.locals import QUIT, KEYDOWN
+from pygame.gfxdraw import trigon, line, pixel
 import optparse
 import argparse
 import sys
@@ -16,6 +20,10 @@ sys.path.remove('../../python-poly2tri')
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH='u1021'
+
+red = pygame.Color(255, 0, 0)
+green = pygame.Color(0, 255, 0)
+blue = pygame.Color(0, 0, 255)
 
 def parse_args():
     "Parse the arguments the user passed in"
@@ -129,57 +137,56 @@ def closer(point1,point2,point3):
 
 def closestpoint(point,points):
     closest=points[0]
+    closestidx=0
     i=0
     while i<len(points):
-        closest=closer(point,closest,points[i])
+        newclosest=closer(point,closest,points[i])
+        if newclosest != closest:
+            closestidx=i
+        closest=newclosest
         i=i+1
-    return (closest, i)
+    return (closest, closestidx)
 
 def closesort2(points):
-    prevpoint=lowest(points)[0]
-    point=closestpoint(prevpoint,points)[0]
+    prevpoint,previdx=lowest(points)
+    point,idx=closestpoint(prevpoint,points)
     sortedpoints=[prevpoint,point]
-    del points[lowest(points)[1]]
-    if closestpoint(prevpoint,points)[1]==lowest(points)[1]:
+    del points[previdx]
+    if idx==previdx:
         pass
-    elif closestpoint(prevpoint,points)[1]>lowest(points)[1]:
-        del points[closestpoint(prevpoint,points)[1]-1]
+    elif idx>previdx:
+        try:
+            del points[idx-1]
+        except IndexError:
+            print "Failed to remove index {} from list of length {}".format(idx-1, len(points))
+            raise
     else:
-        del points[closestpoint(prevpoint,points)[1]]
+        del points[idx]
     k=0
     numberofpoints=len(points)
     while k<numberofpoints:
         nextpointapproximatelocation=(2*point[0]-prevpoint[0],2*point[1]-prevpoint[1])
-        closest=closestpoint(nextpointapproximatelocation,points)[0]
+        closest,closestidx=closestpoint(nextpointapproximatelocation,points)
         sortedpoints.append(closest)
         prevpoint, point = point, closest
         try:
-            del points[closestpoint(nextpointapproximatelocation,points)[1]]
+            del points[closestidx]
         except IndexError:
             pass
         k=k+1
     return sortedpoints
 
 def closesort(points):
-    point=lowest(points)[0]
-    sortedpoints=[point]
-    del points[lowest(points)[1]]
+    lowpoint,idx=lowest(points)
+    sortedpoints=[lowpoint]
+    del points[idx]
     k=0
     numberofpoints=len(points)
+    closest=lowpoint
     while k<numberofpoints:
-        i=1
-        closest=points[0]
-        j=0
-        mindistance=vectorlengthastuple(closest,point)
-        while i<len(points):
-            length=vectorlengthastuple(points[i],point)
-            if length<mindistance:
-                closest=points[i]
-                mindistance=length
-                j=i
-            i=i+1
+        closest,closestidx=closestpoint(closest,points)
         sortedpoints.append(closest)
-        del points[j]
+        del points[closestidx]
         k=k+1
     return sortedpoints
 
@@ -228,11 +235,13 @@ def extraction_demo(fname,letter):
     triangles_set = triangles2vectorset(triangles)
     midpoints_set = triangles_set - polylines_set
     midpoints = [averagepoint_astuple(v[0], v[1]) for v in midpoints_set]
-    
-    #draw_all(polylines, [], triangles)
+
+    screen = setup_screen()
+    draw_all(screen, polylines, [], triangles, polylinecolor=blue, trianglecolor=red)
     #draw_all(polylines, [], [])
     #draw_midpoints([],midpoints)
-    draw_midpoints([closesort(midpoints)], midpoints)
+    draw_midpoints(screen, [closesort(midpoints)], midpoints, polylinecolor=green)
+    wait_for_keypress()
     return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
@@ -299,19 +308,16 @@ def make_triangles(polygon_data, holes=None):
     triangles.extend(cdt.triangulate())
     return triangles
 
-def draw_all(polylines, holes, triangles):
-    """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.
-    This function is pending deprecation."""
-    import pygame
-    from pygame.gfxdraw import trigon, line
-    from pygame.locals import *
+def setup_screen():
     SCREEN_SIZE = (1280,800)
     pygame.init()
     screen = pygame.display.set_mode(SCREEN_SIZE,0,8)
     pygame.display.set_caption('Triangulation of glyph (name goes here)')
-    red = pygame.Color(255, 0, 0)
-    green = pygame.Color(0, 255, 0)
-    blue = pygame.Color(0, 0, 255)
+    return screen
+
+def draw_all(screen, polylines, holes, triangles, polylinecolor=green, holecolor=blue, trianglecolor=red):
+    """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.
+    This function is pending deprecation."""
     global args
     ZOOM = args.zoom
 
@@ -322,7 +328,7 @@ def draw_all(polylines, holes, triangles):
         y2 = int((args.em-t.b.y) * ZOOM)
         x3 = int(t.c.x * ZOOM)
         y3 = int((args.em-t.c.y) * ZOOM)
-        trigon(screen, x1, y1, x2, y2, x3, y3, red)
+        trigon(screen, x1, y1, x2, y2, x3, y3, trianglecolor)
 
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
@@ -333,7 +339,7 @@ def draw_all(polylines, holes, triangles):
             y1 = int(a.y * ZOOM)
             x2 = int(b.x * ZOOM)
             y2 = int(b.y * ZOOM)
-            line(screen, x1, y1, x2, y2, green)
+            line(screen, x1, y1, x2, y2, polylinecolor)
 
     # Same for holes
     for hole in holes:
@@ -344,10 +350,12 @@ def draw_all(polylines, holes, triangles):
             y1 = int(a.y * ZOOM)
             x2 = int(b.x * ZOOM)
             y2 = int(b.y * ZOOM)
-            line(screen, x1, y1, x2, y2, blue)
+            line(screen, x1, y1, x2, y2, holecolor)
 
-    # Show result and wait for keypress
+    # Show result
     pygame.display.update()
+
+def wait_for_keypress():
     done = False
     while not done:
         e = pygame.event.wait()
@@ -358,26 +366,16 @@ def draw_all(polylines, holes, triangles):
             done = True
             break
 
-def draw_midpoints(polylines, midpoints):
+def draw_midpoints(screen, polylines, midpoints, polylinecolor=green, midpointcolor=red):
     """This function takes the list of polylines and midpoints, and draws them in pygame."""
-    import pygame
-    from pygame.gfxdraw import trigon, line, pixel
-    from pygame.locals import *
-    SCREEN_SIZE = (1280,800)
-    pygame.init()
-    screen = pygame.display.set_mode(SCREEN_SIZE,0,8)
-    pygame.display.set_caption('Triangulation of glyph (name goes here)')
-    red = pygame.Color(255, 0, 0)
-    green = pygame.Color(0, 255, 0)
-    blue = pygame.Color(0, 0, 255)
     global args
     DECZOOM = decimal.Decimal(args.zoom)
     ZOOM = args.zoom
     for m in midpoints:
         x = int(m[0] * DECZOOM)
         y = int((args.em-m[1]) * DECZOOM)
-        print (x,y)
-        pixel(screen, x, y, red)
+        #print (x,y)
+        pixel(screen, x, y, midpointcolor)
 
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
@@ -390,19 +388,11 @@ def draw_midpoints(polylines, midpoints):
             y1 = int(a.y * ZOOM)
             x2 = int(b.x * ZOOM)
             y2 = int(b.y * ZOOM)
-            line(screen, x1, y1, x2, y2, green)
+            line(screen, x1, y1, x2, y2, polylinecolor)
+            pygame.display.update()
+            time.sleep(0.1)
 
-    # Show result and wait for keypress
-    pygame.display.update()
-    done = False
-    while not done:
-        e = pygame.event.wait()
-        if (e.type == QUIT):
-            done = True
-            break
-        elif (e.type == KEYDOWN):
-            done = True
-            break
+    # Show result
 
 epsilon_decimal = decimal.Decimal('1e-9')
 def p2dt(point):
@@ -414,7 +404,7 @@ def p2dt(point):
     dx = decimal.Decimal(x).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
     dy = decimal.Decimal(y).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
     return (dx, dy)
-        
+
 def triangle2vectors(t):
     """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
     v1 = [p2dt(t.a), p2dt(t.b)]
@@ -443,7 +433,7 @@ def triangles2vectorset(triangles):
     return result
 
 def vectorlengthastuple(point1, point2):
-    """This function takes two fontforge points, and returns the distance between them"""
+    """This function takes two tuple-style points, and returns the distance between them"""
     xdiff=float(point1[0]-point2[0])
     ydiff=float(point1[1]-point2[1])
     squaredlength=xdiff**2+ydiff**2
@@ -457,7 +447,7 @@ def vectorlength(point1, point2):
     squaredlength=xdiff**2+ydiff**2
     length=squaredlength**0.5
     return length
-    
+
 def averagepoint(point1, point2):
     """This function takes two fontforge points, and finds the average of them"""
     avgx = (point1.x + point2.x) / 2.0
@@ -543,12 +533,12 @@ def extractvectors(points):
     for candidate in extractbeziers(points):
         if len(candidate) == 2:
             # It's a vector
-            subdivided=list(subdivideline(candidate,20))
+            subdivided=list(subdivideline(candidate,5))
             for v in pairwise(subdivided):
                 yield v
         else:
             #change this to variable later
-            subdivided=list(subdividebezier(candidate,20))
+            subdivided=list(subdividebezier(candidate,5))
             for v in pairwise(subdivided):
                 yield v
 
