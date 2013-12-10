@@ -50,26 +50,14 @@ def anythingtopolyline(pointlist):
         return pointlist
 
 def anythingtolinestring(pointlist):
+    """Convert a point list in any format to a Shapely LineString object."""
     return LineString(anythingtopolyline(pointlist))
 
 def anythingtopolygon(outside, holes):
+    """Convert a set of point lists (outside plus any number of holes), in any
+    format, to a Shapely Polygon object."""
     outside = anythingtopolyline(outside)
     holes = map(anythingtopolyline, holes)
-    return Polygon(outside, holes)
-
-def tupletolinestring(tuplelist):
-    """Convert a polyline to a Shapely LineString object."""
-    tuplelist=ff_to_tuple(tuplelist)
-    return LineString(tuplelist)
-
-def tupletopolygon(outside, holes):
-    """Convert a set of polylines to a Shapely Polygon object.
-
-    Input data types:
-        outside should be a polyline (a list of tuples).
-        holes should be a list of polylines, one polyline per hole."""
-    outside = ff_to_tuple(outside)
-    holes = map(ff_to_tuple, holes)
     return Polygon(outside, holes)
 
 def convert_polyline_to_polytri_version(polyline):
@@ -195,22 +183,6 @@ def calculate_parents(polylines):
             a['parents'].append(b)
             b['children'].append(a)
     return polygons
-
-def savepoints(pointlist, filename=None):
-    """Saves the points to a file that is called f. Also makes sure starting point is not equal to ending point
-    This function accepts a list of tuples"""
-    if pointlist[0] == pointlist[-1]:
-        del pointlist[-1]
-    if filename is None:
-        filename = args.datfilename
-    f = file(filename, 'w')
-    for point in pointlist:
-        try:
-            x, y = point.x, point.y
-        except AttributeError:
-            x, y = point[0], point[1]
-        f.write("{} {}\n".format(x,y))
-    f.close()
 
 def levels(polygons):
     """This function takes a list of dictionaries from the parentsandchildren function
@@ -368,13 +340,13 @@ def closer(point1,point2,point3):
         return point2
     else:
         return point3
-    
+
 def closerish(point1,point2,point3,fudge):
     if vectorlengthastuple(point1,point2)<fudge*vectorlengthastuple(point1,point3):
         return point2
     else:
         return point3
-    
+
 def further(point1,point2,point3):
     if vectorlengthastuple(point1,point2)>vectorlengthastuple(point1,point3):
         return point2
@@ -545,15 +517,11 @@ def extraction_demo(fname,letter):
             length=polygon.length
             width=2*area/length
             print width
-            
+
         #if contour.isClockwise():
             #polylines.append(polyline)
         #else:
             #holes.append(polyline)
-    #savepoints(polylines[0])
-    #import subprocess
-    #subprocess.call(['python', '../../python-poly2tri/test.py', args.datfilename, '0', '0', '0.4'])
-    #triangles = make_triangles(polylines, holes)
     triangles_set = triangles2vectorset(triangles)
     midpoints_set = triangles_set - polylines_set
     midpoints = [averagepoint_astuple(v[0], v[1]) for v in midpoints_set]
