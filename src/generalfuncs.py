@@ -58,3 +58,21 @@ def averagepoint_as_tuple(point1, point2):
     avgpoint = (avgx, avgy)
     return avgpoint
 
+def closer(point1,point2,point3):
+    if vectorlengthastuple(point1,point2)<vectorlengthastuple(point1,point3):
+        return point2
+    else:
+        return point3
+
+def closerish(point1,point2,point3,fudge):
+    if vectorlengthastuple(point1,point2)<fudge*vectorlengthastuple(point1,point3):
+        return point2
+    else:
+        return point3
+
+def further(point1,point2,point3):
+    if vectorlengthastuple(point1,point2)>vectorlengthastuple(point1,point3):
+        return point2
+    else:
+        return point3
+
