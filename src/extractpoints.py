@@ -321,12 +321,9 @@ def extraction_demo(fname,letter):
     glyph = font[codepoint]
     layer = glyph.foreground
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
-    # Result was 1: so there is exactly one contour. If there were more, we'd
-    # loop through them each in turn.
     polylines = []
     polylines_set = set()
     triangles = []
-    #holes = []
     for contour in layer:
         # At this point, we're dealing with FontForge objects (lists of FF points, and so on)
         points = list(contour)
@@ -339,25 +336,18 @@ def extraction_demo(fname,letter):
     parent_data = calculate_parents(polylines)
     level_data = levels(parent_data)
     level_data = calculateimmediatechildren(level_data)
-    booleanvalue=True
     for level in level_data[::2]:
         for poly in level:
             triangles.extend(make_triangles(poly, poly.get('immediatechildren', [])))
-#             if booleanvalue:
             immediatechildrenlines=[]
             for i in poly.get('immediatechildren', []):
                 immediatechildrenlines.append(i['line'])
             polygon=any_to_polygon(poly['line'],immediatechildrenlines)
-            booleanvalue=False
             area=polygon.area
             length=polygon.length
             width=2*area/length
             print width
 
-        #if contour.isClockwise():
-            #polylines.append(polyline)
-        #else:
-            #holes.append(polyline)
     triangles_set = triangles2vectorset(triangles)
     midpoints_set = triangles_set - polylines_set
     midpoints = [averagepoint_as_tuple(v[0], v[1]) for v in midpoints_set]
