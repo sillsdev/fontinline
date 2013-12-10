@@ -16,76 +16,15 @@ sys.path.append('../../python-poly2tri')
 import p2t
 sys.path.remove('../../python-poly2tri')
 
-from dataconvert import any_to_linestring, any_to_polygon, ff_to_tuple
+from dataconvert import (
+    any_to_linestring, any_to_polygon, ff_to_tuple, closedpolyline2vectorset,
+    convert_polyline_to_polytri_version, triangles2vectorset,
+    vectorpairs_to_pointlist, triangle2vectors, p2dt)
 from visualization import (setup_screen, draw_all, draw_midlines,
                            wait_for_keypress, red, green, blue)
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH='u1021'
-
-#=============
-#functions that convert between different data types (or saves them to files)
-#=============
-
-def convert_polyline_to_polytri_version(polyline):
-    """Converts points to p2t points that poly2tri can deal with
-    This function accepts tuples or fontforge points"""
-    result = []
-    if hasattr(polyline, 'coords'):
-        polyline = polyline.coords
-    for point in polyline:
-        try:
-            x, y = point.x, point.y
-        except AttributeError:
-            x, y = point[0], point[1]
-        result.append(p2t.Point(x, y))
-    return result
-
-def closedpolyline2vectorset(polyline):
-    """Converts a polyline (which should be closed, i.e. the last point = the first point) to a set of vectors (as Decimal tuple pairs)."""
-    result = set()
-    l = list(polyline)  # Just in case it was a generator before...
-    for a, b in pairwise(l):
-        vector = [p2dt(a), p2dt(b)]
-        vector = tuple(sorted(vector))
-        result.add(vector)
-    return result
-
-def triangles2vectorset(triangles):
-    result = set()
-    for t in triangles:
-        for v in triangle2vectors(t):
-            result.add(v)
-    return result
-
-def vectorpairs_to_pointlist(pairs):
-    """This function takes a list of pairs of points and turns it into a single list of points.
-    This function needs to be updated when we subdivide bezier curves"""
-    pairs = list(pairs)
-    if not pairs:
-        return []
-    return [pair[0] for pair in pairs] + [pairs[-1][-1]]
-
-def triangle2vectors(t):
-    """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
-    v1 = [p2dt(t.a), p2dt(t.b)]
-    v2 = [p2dt(t.b), p2dt(t.c)]
-    v3 = [p2dt(t.c), p2dt(t.a)]
-    v1 = tuple(sorted(v1))
-    v2 = tuple(sorted(v2))
-    v3 = tuple(sorted(v3))
-    return [v1, v2, v3]
-
-epsilon_decimal = decimal.Decimal('1e-9')
-def p2dt(point):
-    """Converts a point into a representation using a tuple of Python's Decimal objects."""
-    try:
-        x, y = point.x, point.y
-    except AttributeError:
-        x, y = point[0], point[1]
-    dx = decimal.Decimal(x).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
-    dy = decimal.Decimal(y).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
-    return (dx, dy)
 
 #==============
 #This section is for functions that calculate and return a different data type
