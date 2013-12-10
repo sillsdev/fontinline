@@ -30,20 +30,54 @@ blue = pygame.Color(0, 0, 255)
 #functions that convert between different data types (or saves them to files)
 #=============
 
+def anythingtopolyline(pointlist):
+    """This function will take a point list in *any* format and return the
+    corresponding polyline (a list of tuples)."""
+    if hasattr(pointlist, 'exterior'):
+        # It's a Polygon; just return the *outside* line
+        return pointlist.exterior.coords
+    elif hasattr(pointlist, 'coords'):
+        # It's a LineString
+        return pointlist.coords
+    elif not pointlist:
+        # It's an empty list
+        return []
+    elif hasattr(pointlist[0], 'x'):
+        # It's a list of FontForge (or p2t) points
+        return ff_to_tuple(pointlist)
+    else:
+        # It was already a list of tuples
+        return pointlist
+
+def anythingtolinestring(pointlist):
+    return LineString(anythingtopolyline(pointlist))
+
+def anythingtopolygon(outside, holes):
+    outside = anythingtopolyline(outside)
+    holes = map(anythingtopolyline, holes)
+    return Polygon(outside, holes)
+
 def tupletolinestring(tuplelist):
+    """Convert a polyline to a Shapely LineString object."""
     tuplelist=ff_to_tuple(tuplelist)
     return LineString(tuplelist)
 
-def tupletopolygon(tuplelist):
-    if tuplelist[0]==tuplelist[-1]:
-        del tuplelist[-1]
-    tuplelist=ff_to_tuple(tuplelist)
-    return Polygon(tuplelist)
+def tupletopolygon(outside, holes):
+    """Convert a set of polylines to a Shapely Polygon object.
+
+    Input data types:
+        outside should be a polyline (a list of tuples).
+        holes should be a list of polylines, one polyline per hole."""
+    outside = ff_to_tuple(outside)
+    holes = map(ff_to_tuple, holes)
+    return Polygon(outside, holes)
 
 def convert_polyline_to_polytri_version(polyline):
     """Converts points to p2t points that poly2tri can deal with
     This function accepts tuples or fontforge points"""
     result = []
+    if hasattr(polyline, 'coords'):
+        polyline = polyline.coords
     for point in polyline:
         try:
             x, y = point.x, point.y
@@ -84,6 +118,9 @@ def ff_to_tuple(ffpointlist):
         return [(p.x, p.y) for p in ffpointlist]
     except AttributeError:
         return ffpointlist  # Because this was probably already a list of tuples
+    except TypeError:
+        # This would be TypeError: 'LineString' object is not iterable
+        return ffpointlist.coords
 
 def triangle2vectors(t):
     """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
@@ -359,7 +396,7 @@ def pointscloserthan(point,points,radius):
     for i in points:
         if vectorlengthastuple(i,point)<=radius:
             closelist.append(i)
-    return closelist    
+    return closelist
 
 def closesort2(points):
     prevpoint,previdx=lowest(points)
@@ -409,6 +446,7 @@ def closesort(points):
 #================
 
 def extractvectors(points,length):
+    """Note: points argument should be a list (or generator) of FF points."""
     points = list(points)
     for candidate in extractbeziers(points):
         lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
@@ -444,13 +482,13 @@ def extraction_demo(fname,letter):
     triangles = []
     #holes = []
     for contour in layer:
+        # At this point, we're dealing with FontForge objects (lists of FF points, and so on)
         points = list(contour)
         pointlist_with_midpoints = extrapolate_midpoints(points)
-        #pointlist_with_midpoints=tupletopolygon(pointlist_with_midpoints)
         vectors = extractvectors(pointlist_with_midpoints,args.minstrokelength)
         #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polyline = vectorpairs_to_pointlist(vectors)
-        polylines.append(polyline)  # This includes "real" polys and holes, both
+        polylines.append(anythingtolinestring(polyline))
         polylines_set = polylines_set.union(closedpolyline2vectorset(polyline))
     parent_data = calculate_parents(polylines)
     level_data = levels(parent_data)
@@ -498,8 +536,11 @@ def make_triangles(polygon_data, holes=None):
     cdt = p2t.CDT(new_polyline)
     for hole_data in holes:
         hole = hole_data['line']
+        if hasattr(hole, 'coords'):
+            hole = list(hole.coords)
         if are_points_equal(hole[-1], hole[0]):
             del hole[-1]
+        hole = convert_polyline_to_polytri_version(hole)
         cdt.add_hole(hole)
     triangles.extend(cdt.triangulate())
     return triangles
@@ -528,24 +569,28 @@ def draw_all(screen, polylines, holes, triangles, polylinecolor=green, holecolor
 
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
+        if hasattr(polyline, 'coords'):
+            polyline = list(polyline.coords)
         polyline.append(polyline[0])
         flipped = flip_polyline(polyline)
         for a, b in pairwise(flipped):
-            x1 = int(a.x * ZOOM)
-            y1 = int(a.y * ZOOM)
-            x2 = int(b.x * ZOOM)
-            y2 = int(b.y * ZOOM)
+            x1 = int(a[0] * ZOOM)
+            y1 = int(a[1] * ZOOM)
+            x2 = int(b[0] * ZOOM)
+            y2 = int(b[1] * ZOOM)
             line(screen, x1, y1, x2, y2, polylinecolor)
 
     # Same for holes
     for hole in holes:
+        if hasattr(hole, 'coords'):
+            hole = list(hole.coords)
         hole.append(hole[0])
         flipped = flip_polyline(hole)
         for a, b in pairwise(flipped):
-            x1 = int(a.x * ZOOM)
-            y1 = int(a.y * ZOOM)
-            x2 = int(b.x * ZOOM)
-            y2 = int(b.y * ZOOM)
+            x1 = int(a[0] * ZOOM)
+            y1 = int(a[1] * ZOOM)
+            x2 = int(b[0] * ZOOM)
+            y2 = int(b[1] * ZOOM)
             line(screen, x1, y1, x2, y2, holecolor)
 
     # Show result
@@ -588,7 +633,7 @@ def draw_midpoints(screen, polylines, midpoints, polylinecolor=green, midpointco
             pygame.display.update()
             time.sleep(0.02)
     # Show result
-        
+
 # Demo of how to extract the control points from a font.
 # Run "sudo apt-get install fonts-sil-padauk" before calling this function.
 # Extending this function to arbitrary fonts and glyphs is left as an exercise
