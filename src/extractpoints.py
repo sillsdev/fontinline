@@ -346,7 +346,7 @@ def extraction_demo(fname,letter):
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    draw_midlines(screen, allmidlines, polylines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress()
     return points
     # Note that there may be several off-curve points in a sequence, as with
