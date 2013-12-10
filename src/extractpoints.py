@@ -306,7 +306,9 @@ def extraction_demo(fname,letter):
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     polylines = []
     polylines_set = set()
-    triangles = []
+    alltriangles = []
+    allmidpoints = []
+    allmidlines = []
     for contour in layer:
         # At this point, we're dealing with FontForge objects (lists of FF points, and so on)
         points = list(contour)
@@ -319,9 +321,11 @@ def extraction_demo(fname,letter):
     parent_data = calculate_parents(polylines)
     level_data = levels(parent_data)
     level_data = calculateimmediatechildren(level_data)
+    screen = setup_screen()
     for level in level_data[::2]:
         for poly in level:
-            triangles.extend(make_triangles(poly, poly.get('immediatechildren', [])))
+            triangles = (make_triangles(poly, poly.get('immediatechildren', [])))
+            alltriangles.extend(triangles)
             immediatechildrenlines=[]
             for i in poly.get('immediatechildren', []):
                 immediatechildrenlines.append(i['line'])
@@ -330,18 +334,19 @@ def extraction_demo(fname,letter):
             length=polygon.length
             width=2*area/length
             print width
+            triangles_set = triangles2vectorset(triangles)
+            midpoints_set = triangles_set - polylines_set
+            midpoints = [averagepoint_as_tuple(v[0], v[1]) for v in midpoints_set]
+            allmidpoints.extend(midpoints)
+            closesorted=closesort(midpoints,width)
+            closesorted.append(closesorted[0])
+            allmidlines.append(closesorted)
 
-    triangles_set = triangles2vectorset(triangles)
-    midpoints_set = triangles_set - polylines_set
-    midpoints = [averagepoint_as_tuple(v[0], v[1]) for v in midpoints_set]
-    screen = setup_screen()
-    draw_all(screen, polylines, [], triangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
+    draw_all(screen, polylines, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    closesorted=closesort(midpoints,width)
-    closesorted.append(closesorted[0])
-    draw_midlines(screen, [closesorted], midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress()
     return points
     # Note that there may be several off-curve points in a sequence, as with
