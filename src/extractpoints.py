@@ -14,7 +14,7 @@ import shapely
 import warnings
 import decimal
 import math
-from shapely.geometry.polygon import Polygon
+from shapely.geometry import Polygon, LineString, Point
 sys.path.append('../../python-poly2tri')
 import p2t
 sys.path.remove('../../python-poly2tri')
@@ -22,13 +22,23 @@ sys.path.remove('../../python-poly2tri')
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH='u1021'
 
-red = pygame.Color(0, 0, 0)
+red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 0)
+blue = pygame.Color(0, 0, 255)
 
 #=============
 #functions that convert between different data types (or saves them to files)
 #=============
+
+def tupletolinestring(tuplelist):
+    tuplelist=ff_to_tuple(tuplelist)
+    return LineString(tuplelist)
+
+def tupletopolygon(tuplelist):
+    if tuplelist[0]==tuplelist[-1]:
+        del tuplelist[-1]
+    tuplelist=ff_to_tuple(tuplelist)
+    return Polygon(tuplelist)
 
 def convert_polyline_to_polytri_version(polyline):
     """Converts points to p2t points that poly2tri can deal with
@@ -70,7 +80,10 @@ def vectorpairs_to_pointlist(pairs):
 def ff_to_tuple(ffpointlist):
     """This function takes a list of fontforge points and turns it into a list of tuples.
     This function needs to be updated to retain the oncurve-offcurve information"""
-    return [(p.x, p.y) for p in ffpointlist]
+    try:
+        return [(p.x, p.y) for p in ffpointlist]
+    except AttributeError:
+        return ffpointlist  # Because this was probably already a list of tuples
 
 def triangle2vectors(t):
     """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
@@ -231,17 +244,6 @@ def is_within(line, polygon):
         polygon = Polygon(ff_to_tuple(polygon))
     return line.difference(polygon).is_empty
 
-def is_within(line, polygon):
-    if isinstance(line, LineString):
-        pass
-    else:
-        line = LineString(ff_to_tuple(line))
-    if isinstance(polygon, Polygon):
-        pass
-    else:
-        polygon = Polygon(ff_to_tuple(polygon))
-    return line.difference(polygon).is_empty
-
 def vectorlengthastuple(point1, point2):
     """This function takes two tuple-style points, and returns the distance between them"""
     xdiff=float(point1[0]-point2[0])
@@ -352,6 +354,13 @@ def closestpoint(point,points):
         i=i+1
     return (closest, closestidx)
 
+def pointscloserthan(point,points,radius):
+    closelist=[]
+    for i in points:
+        if vectorlengthastuple(i,point)<=radius:
+            closelist.append(i)
+    return closelist    
+
 def closesort2(points):
     prevpoint,previdx=lowest(points)
     point,idx=closestpoint(prevpoint,points)
@@ -411,7 +420,7 @@ def extractvectors(points,length):
                 yield v
         else:
             #change this to variable later
-            subdivided=list(subdividebezier(candidate,10))
+            subdivided=list(subdividebezier(candidate,subdivision))
             for v in pairwise(subdivided):
                 yield v
 
@@ -437,6 +446,7 @@ def extraction_demo(fname,letter):
     for contour in layer:
         points = list(contour)
         pointlist_with_midpoints = extrapolate_midpoints(points)
+        #pointlist_with_midpoints=tupletopolygon(pointlist_with_midpoints)
         vectors = extractvectors(pointlist_with_midpoints,args.minstrokelength)
         #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polyline = vectorpairs_to_pointlist(vectors)
@@ -465,7 +475,7 @@ def extraction_demo(fname,letter):
     #draw_all(polylines, [], [])
     #draw_midpoints([],midpoints)
     closesorted=closesort(midpoints)
-    closesorted.append(closesorted[0])
+    #closesorted.append(closesorted[0])
     draw_midpoints(screen, [closesorted], midpoints, polylinecolor=green)
     wait_for_keypress()
     return points
@@ -576,7 +586,7 @@ def draw_midpoints(screen, polylines, midpoints, polylinecolor=green, midpointco
             y2 = int(b.y * ZOOM)
             line(screen, x1, y1, x2, y2, polylinecolor)
             pygame.display.update()
-            time.sleep(0.1)
+            time.sleep(0.02)
     # Show result
         
 # Demo of how to extract the control points from a font.
