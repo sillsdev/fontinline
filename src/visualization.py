@@ -114,6 +114,5 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
             y2 = int(b[1] * deczoom)
             line(screen, x1, y1, x2, y2, polylinecolor)
             pygame.display.update()
-            time.sleep(0.02)
     # Show result
 
