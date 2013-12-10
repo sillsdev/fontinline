@@ -19,6 +19,8 @@ sys.path.append('../../python-poly2tri')
 import p2t
 sys.path.remove('../../python-poly2tri')
 
+from dataconvert import any_to_linestring, any_to_polygon, ff_to_tuple
+
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH='u1021'
 
@@ -29,36 +31,6 @@ blue = pygame.Color(0, 0, 255)
 #=============
 #functions that convert between different data types (or saves them to files)
 #=============
-
-def anythingtopolyline(pointlist):
-    """This function will take a point list in *any* format and return the
-    corresponding polyline (a list of tuples)."""
-    if hasattr(pointlist, 'exterior'):
-        # It's a Polygon; just return the *outside* line
-        return pointlist.exterior.coords
-    elif hasattr(pointlist, 'coords'):
-        # It's a LineString
-        return pointlist.coords
-    elif not pointlist:
-        # It's an empty list
-        return []
-    elif hasattr(pointlist[0], 'x'):
-        # It's a list of FontForge (or p2t) points
-        return ff_to_tuple(pointlist)
-    else:
-        # It was already a list of tuples
-        return pointlist
-
-def anythingtolinestring(pointlist):
-    """Convert a point list in any format to a Shapely LineString object."""
-    return LineString(anythingtopolyline(pointlist))
-
-def anythingtopolygon(outside, holes):
-    """Convert a set of point lists (outside plus any number of holes), in any
-    format, to a Shapely Polygon object."""
-    outside = anythingtopolyline(outside)
-    holes = map(anythingtopolyline, holes)
-    return Polygon(outside, holes)
 
 def convert_polyline_to_polytri_version(polyline):
     """Converts points to p2t points that poly2tri can deal with
@@ -98,17 +70,6 @@ def vectorpairs_to_pointlist(pairs):
     if not pairs:
         return []
     return [pair[0] for pair in pairs] + [pairs[-1][-1]]
-
-def ff_to_tuple(ffpointlist):
-    """This function takes a list of fontforge points and turns it into a list of tuples.
-    This function needs to be updated to retain the oncurve-offcurve information"""
-    try:
-        return [(p.x, p.y) for p in ffpointlist]
-    except AttributeError:
-        return ffpointlist  # Because this was probably already a list of tuples
-    except TypeError:
-        # This would be TypeError: 'LineString' object is not iterable
-        return ffpointlist.coords
 
 def triangle2vectors(t):
     """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
@@ -444,11 +405,11 @@ def is_within(line, polygon):
     if isinstance(line, LineString):
         pass
     else:
-        line = anythingtolinestring(line)
+        line = any_to_linestring(line)
     if isinstance(polygon, Polygon):
         pass
     else:
-        polygon = anythingtopolygon(polygon, [])
+        polygon = any_to_polygon(polygon, [])
     return line.difference(polygon).is_empty
 
 #================
@@ -498,7 +459,7 @@ def extraction_demo(fname,letter):
         vectors = extractvectors(pointlist_with_midpoints,args.minstrokelength)
         #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polyline = vectorpairs_to_pointlist(vectors)
-        polylines.append(anythingtolinestring(polyline))
+        polylines.append(any_to_linestring(polyline))
         polylines_set = polylines_set.union(closedpolyline2vectorset(polyline))
     parent_data = calculate_parents(polylines)
     level_data = levels(parent_data)
@@ -511,7 +472,7 @@ def extraction_demo(fname,letter):
             immediatechildrenlines=[]
             for i in poly.get('immediatechildren', []):
                 immediatechildrenlines.append(i['line'])
-            polygon=anythingtopolygon(poly['line'],immediatechildrenlines)
+            polygon=any_to_polygon(poly['line'],immediatechildrenlines)
             booleanvalue=False
             area=polygon.area
             length=polygon.length
