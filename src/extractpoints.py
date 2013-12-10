@@ -13,6 +13,7 @@ import itertools
 import shapely
 import warnings
 import decimal
+import math
 from shapely.geometry.polygon import Polygon
 sys.path.append('../../python-poly2tri')
 import p2t
@@ -21,9 +22,9 @@ sys.path.remove('../../python-poly2tri')
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH='u1021'
 
-red = pygame.Color(255, 0, 0)
+red = pygame.Color(0, 0, 0)
 green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 255)
+blue = pygame.Color(0, 0, 0)
 
 #=============
 #functions that convert between different data types (or saves them to files)
@@ -40,21 +41,6 @@ def convert_polyline_to_polytri_version(polyline):
             x, y = point[0], point[1]
         result.append(p2t.Point(x, y))
     return result
-
-def are_points_equal(a, b, epsilon=1e-9):
-    """Compares points a and b and returns true if they're equal.
-
-    "Equal", here, is defined as "the difference is less than epsilon" since
-    we're dealing with floats.
-
-    Points a and b can be either Fontforge point objects, or tuples."""
-    try:
-        x1, y1 = a.x, a.y
-        x2, y2 = b.x, b.y
-    except AttributeError:
-        x1, y1 = a[0], a[1]
-        x2, y2 = b[0], b[1]
-    return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
 def closedpolyline2vectorset(polyline):
     """Converts a polyline (which should be closed, i.e. the last point = the first point) to a set of vectors (as Decimal tuple pairs)."""
@@ -106,6 +92,25 @@ def p2dt(point):
     dx = decimal.Decimal(x).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
     dy = decimal.Decimal(y).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
     return (dx, dy)
+
+#==============
+#This section is for functions that calculate and return a different data type
+#==============
+
+def are_points_equal(a, b, epsilon=1e-9):
+    """Compares points a and b and returns true if they're equal.
+
+    "Equal", here, is defined as "the difference is less than epsilon" since
+    we're dealing with floats.
+
+    Points a and b can be either Fontforge point objects, or tuples."""
+    try:
+        x1, y1 = a.x, a.y
+        x2, y2 = b.x, b.y
+    except AttributeError:
+        x1, y1 = a[0], a[1]
+        x2, y2 = b[0], b[1]
+    return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
 def flip_polyline(polyline):
     """This function takes a list of tuples (the polyline), and inverts the y coordinate of each point
@@ -211,23 +216,31 @@ def extractbeziers(points):
             i=i+2
         yield added_bezier
 
-def extractvectors(points):
-    points = list(points)
-    for candidate in extractbeziers(points):
-        if len(candidate) == 2:
-            # It's a vector
-            subdivided=list(subdivideline(candidate,5))
-            for v in pairwise(subdivided):
-                yield v
-        else:
-            #change this to variable later
-            subdivided=list(subdividebezier(candidate,5))
-            for v in pairwise(subdivided):
-                yield v
-
 #==============
 #This section is for functions that do extra calculations
 #==============
+
+def is_within(line, polygon):
+    if isinstance(line, LineString):
+        pass
+    else:
+        line = LineString(ff_to_tuple(line))
+    if isinstance(polygon, Polygon):
+        pass
+    else:
+        polygon = Polygon(ff_to_tuple(polygon))
+    return line.difference(polygon).is_empty
+
+def is_within(line, polygon):
+    if isinstance(line, LineString):
+        pass
+    else:
+        line = LineString(ff_to_tuple(line))
+    if isinstance(polygon, Polygon):
+        pass
+    else:
+        polygon = Polygon(ff_to_tuple(polygon))
+    return line.difference(polygon).is_empty
 
 def vectorlengthastuple(point1, point2):
     """This function takes two tuple-style points, and returns the distance between them"""
@@ -386,6 +399,22 @@ def closesort(points):
 #This section is for functions that actually do things beyond calculations and converting between data types
 #================
 
+def extractvectors(points,length):
+    points = list(points)
+    for candidate in extractbeziers(points):
+        lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
+        subdivision=int(math.ceil(lineorbezierlength/length))
+        if len(candidate) == 2:
+            # It's a vector
+            subdivided=list(subdivideline(candidate,subdivision))
+            for v in pairwise(subdivided):
+                yield v
+        else:
+            #change this to variable later
+            subdivided=list(subdividebezier(candidate,10))
+            for v in pairwise(subdivided):
+                yield v
+
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
     global args
@@ -408,8 +437,7 @@ def extraction_demo(fname,letter):
     for contour in layer:
         points = list(contour)
         pointlist_with_midpoints = extrapolate_midpoints(points)
-        vectors = extractvectors(pointlist_with_midpoints)
-
+        vectors = extractvectors(pointlist_with_midpoints,args.minstrokelength)
         #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
         polyline = vectorpairs_to_pointlist(vectors)
         polylines.append(polyline)  # This includes "real" polys and holes, both
@@ -436,7 +464,9 @@ def extraction_demo(fname,letter):
     draw_all(screen, polylines, [], triangles, polylinecolor=blue, trianglecolor=red)
     #draw_all(polylines, [], [])
     #draw_midpoints([],midpoints)
-    draw_midpoints(screen, [closesort(midpoints)], midpoints, polylinecolor=green)
+    closesorted=closesort(midpoints)
+    closesorted.append(closesorted[0])
+    draw_midpoints(screen, [closesorted], midpoints, polylinecolor=green)
     wait_for_keypress()
     return points
     # Note that there may be several off-curve points in a sequence, as with
@@ -562,6 +592,7 @@ def parse_args():
     parser.add_argument("inputfilename", nargs="?", default=DEFAULT_FONT, help="Font file (SFD or TTF format)")
     parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name to extract")
     parser.add_argument('-z', '--zoom', action="store", type=float, default=1.0, help="Zoom level (default 1.0)")
+    parser.add_argument('-m', '--minstrokelength', action="store", type=float, default=-1, help="The minimum stroke length")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'
