@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
 import fontforge
-import pygame
 import time
-from pygame.locals import QUIT, KEYDOWN
-from pygame.gfxdraw import trigon, line, pixel
 import optparse
 import argparse
 import sys
@@ -20,13 +17,11 @@ import p2t
 sys.path.remove('../../python-poly2tri')
 
 from dataconvert import any_to_linestring, any_to_polygon, ff_to_tuple
+from visualization import (setup_screen, draw_all, draw_midlines,
+                           wait_for_keypress, red, green, blue)
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH='u1021'
-
-red = pygame.Color(255, 0, 0)
-green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 255)
 
 #=============
 #functions that convert between different data types (or saves them to files)
@@ -110,20 +105,6 @@ def are_points_equal(a, b, epsilon=1e-9):
         x1, y1 = a[0], a[1]
         x2, y2 = b[0], b[1]
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
-
-def flip_polyline(polylinelist):
-    """This function takes a list of lists of tuples (the list of polylines), and inverts the y coordinate of each point
-    because the coordinate systems for fontforge are different than the coordinate systems for the p2t program."""
-    result = []
-    for point in polylinelist:
-        #for point in polyline:
-            try:
-                x, y = point.x, args.em-point.y
-                result.append(point.__class__(x,y))
-            except AttributeError:
-                x, y = point[0], args.em-point[1]
-                result.append(tuple([x,y]))
-    return result
 
 def calculate_parents(polylines):
     """This function takes a list of fontforge points and turns it into a list of dictionaries.
@@ -487,14 +468,13 @@ def extraction_demo(fname,letter):
     midpoints_set = triangles_set - polylines_set
     midpoints = [averagepoint_astuple(v[0], v[1]) for v in midpoints_set]
     screen = setup_screen()
-    draw_all(screen, polylines, [], triangles, polylinecolor=blue, trianglecolor=red)
-    #draw_all(polylines, [], [])
-    #draw_midpoints([],midpoints)
+    draw_all(screen, polylines, [], triangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
+    #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
-    #draw_midpoints(screen, lines, midpoints, polylinecolor=green)
+    #draw_midlines(screen, lines, midpoints, polylinecolor=green)
     closesorted=closesort(midpoints,width)
     closesorted.append(closesorted[0])
-    draw_midpoints(screen, [closesorted], midpoints, polylinecolor=green)
+    draw_midlines(screen, [closesorted], midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress()
     return points
     # Note that there may be several off-curve points in a sequence, as with
@@ -524,95 +504,6 @@ def make_triangles(polygon_data, holes=None):
         cdt.add_hole(hole)
     triangles.extend(cdt.triangulate())
     return triangles
-
-def setup_screen():
-    SCREEN_SIZE = (1280,800)
-    pygame.init()
-    screen = pygame.display.set_mode(SCREEN_SIZE,0,8)
-    pygame.display.set_caption('Triangulation of glyph (name goes here)')
-    return screen
-
-def draw_all(screen, polylines, holes, triangles, polylinecolor=green, holecolor=blue, trianglecolor=red):
-    """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.
-    This function is pending deprecation."""
-    global args
-    ZOOM = args.zoom
-
-    for t in triangles:
-        x1 = int(t.a.x * ZOOM)
-        y1 = int((args.em-t.a.y) * ZOOM)
-        x2 = int(t.b.x * ZOOM)
-        y2 = int((args.em-t.b.y) * ZOOM)
-        x3 = int(t.c.x * ZOOM)
-        y3 = int((args.em-t.c.y) * ZOOM)
-        trigon(screen, x1, y1, x2, y2, x3, y3, trianglecolor)
-
-    # Close the polylines loop again prior to drawing
-    for polyline in polylines:
-        if hasattr(polyline, 'coords'):
-            polyline = list(polyline.coords)
-        polyline.append(polyline[0])
-        flipped = flip_polyline(polyline)
-        for a, b in pairwise(flipped):
-            x1 = int(a[0] * ZOOM)
-            y1 = int(a[1] * ZOOM)
-            x2 = int(b[0] * ZOOM)
-            y2 = int(b[1] * ZOOM)
-            line(screen, x1, y1, x2, y2, polylinecolor)
-
-    # Same for holes
-    for hole in holes:
-        if hasattr(hole, 'coords'):
-            hole = list(hole.coords)
-        hole.append(hole[0])
-        flipped = flip_polyline(hole)
-        for a, b in pairwise(flipped):
-            x1 = int(a[0] * ZOOM)
-            y1 = int(a[1] * ZOOM)
-            x2 = int(b[0] * ZOOM)
-            y2 = int(b[1] * ZOOM)
-            line(screen, x1, y1, x2, y2, holecolor)
-
-    # Show result
-    pygame.display.update()
-
-def wait_for_keypress():
-    done = False
-    while not done:
-        e = pygame.event.wait()
-        if (e.type == QUIT):
-            done = True
-            break
-        elif (e.type == KEYDOWN):
-            done = True
-            break
-
-def draw_midpoints(screen, polylines, midpoints, polylinecolor=green, midpointcolor=red):
-    """This function takes the list of polylines and midpoints, and draws them in pygame."""
-    global args
-    DECZOOM = decimal.Decimal(args.zoom)
-    ZOOM = args.zoom
-    for m in midpoints:
-        x = int(m[0] * DECZOOM)
-        y = int((args.em-m[1]) * DECZOOM)
-        #print (x,y)
-        pixel(screen, x, y, midpointcolor)
-
-    # Close the polylines loop again prior to drawing
-    for polyline in polylines:
-        #polyline.append(polyline[0])
-        flipped = flip_polyline(polyline)
-        flipped=map(p2dt,flipped)
-        flipped=convert_polyline_to_polytri_version(flipped)
-        for a, b in pairwise(flipped):
-            x1 = int(a.x * ZOOM)
-            y1 = int(a.y * ZOOM)
-            x2 = int(b.x * ZOOM)
-            y2 = int(b.y * ZOOM)
-            line(screen, x1, y1, x2, y2, polylinecolor)
-            pygame.display.update()
-            time.sleep(0.02)
-    # Show result
 
 # Demo of how to extract the control points from a font.
 # Run "sudo apt-get install fonts-sil-padauk" before calling this function.
