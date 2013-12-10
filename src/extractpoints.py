@@ -162,17 +162,18 @@ def are_points_equal(a, b, epsilon=1e-9):
         x2, y2 = b[0], b[1]
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
-def flip_polyline(polyline):
-    """This function takes a list of tuples (the polyline), and inverts the y coordinate of each point
+def flip_polyline(polylinelist):
+    """This function takes a list of lists of tuples (the list of polylines), and inverts the y coordinate of each point
     because the coordinate systems for fontforge are different than the coordinate systems for the p2t program."""
     result = []
-    for point in polyline:
-        try:
-            x, y = point.x, args.em-point.y
-            result.append(point.__class__(x,y))
-        except AttributeError:
-            x, y = point[0], args.em-point[1]
-            result.append(tuple([x,y]))
+    for point in polylinelist:
+        #for point in polyline:
+            try:
+                x, y = point.x, args.em-point.y
+                result.append(point.__class__(x,y))
+            except AttributeError:
+                x, y = point[0], args.em-point[1]
+                result.append(tuple([x,y]))
     return result
 
 def calculate_parents(polylines):
@@ -269,17 +270,6 @@ def extractbeziers(points):
 #==============
 #This section is for functions that do extra calculations
 #==============
-
-def is_within(line, polygon):
-    if isinstance(line, LineString):
-        pass
-    else:
-        line = LineString(ff_to_tuple(line))
-    if isinstance(polygon, Polygon):
-        pass
-    else:
-        polygon = Polygon(ff_to_tuple(polygon))
-    return line.difference(polygon).is_empty
 
 def vectorlengthastuple(point1, point2):
     """This function takes two tuple-style points, and returns the distance between them"""
@@ -378,6 +368,18 @@ def closer(point1,point2,point3):
         return point2
     else:
         return point3
+    
+def closerish(point1,point2,point3,fudge):
+    if vectorlengthastuple(point1,point2)<fudge*vectorlengthastuple(point1,point3):
+        return point2
+    else:
+        return point3
+    
+def further(point1,point2,point3):
+    if vectorlengthastuple(point1,point2)>vectorlengthastuple(point1,point3):
+        return point2
+    else:
+        return point3
 
 def closestpoint(point,points):
     closest=points[0]
@@ -427,7 +429,7 @@ def closesort2(points):
         k=k+1
     return sortedpoints
 
-def closesort(points):
+def closesort(points,length):
     lowpoint,idx=lowest(points)
     sortedpoints=[lowpoint]
     del points[idx]
@@ -435,11 +437,47 @@ def closesort(points):
     numberofpoints=len(points)
     closest=lowpoint
     while k<numberofpoints:
-        closest,closestidx=closestpoint(closest,points)
+        closestnew=closestpoint(closest,points)
+        closest,closestidx=closestnew
         sortedpoints.append(closest)
         del points[closestidx]
         k=k+1
     return sortedpoints
+
+def points_to_all_lines(points,length):
+    lines=[]
+    print len(points)
+    while points!=[]:
+        point=points[0]
+        del points[0]
+        closepoints=pointscloserthan(point,points,length)
+        #i=0
+        #while i<len(closepoints):
+        #    j=i+1
+        #    while j<len(closepoints):
+        #        if closer(closepoints[i],point,closepoints[j])==closepoints[j]:
+        #            extra=further(point,closepoints[i],closepoints[j])
+        #            if len(closepoints)>1:
+        #                closepoints.remove(extra)
+        #        j=j+1
+        #    i=i+1
+        for i in closepoints:
+            lines.append([point,i])
+        if closepoints:
+            points.remove(closepoints[0])
+            points=[closepoints[0]]+points
+    return lines
+
+def is_within(line, polygon):
+    if isinstance(line, LineString):
+        pass
+    else:
+        line = anythingtolinestring(line)
+    if isinstance(polygon, Polygon):
+        pass
+    else:
+        polygon = anythingtopolygon(polygon, [])
+    return line.difference(polygon).is_empty
 
 #================
 #This section is for functions that actually do things beyond calculations and converting between data types
@@ -493,9 +531,21 @@ def extraction_demo(fname,letter):
     parent_data = calculate_parents(polylines)
     level_data = levels(parent_data)
     level_data = calculateimmediatechildren(level_data)
+    booleanvalue=True
     for level in level_data[::2]:
         for poly in level:
             triangles.extend(make_triangles(poly, poly.get('immediatechildren', [])))
+#             if booleanvalue:
+            immediatechildrenlines=[]
+            for i in poly.get('immediatechildren', []):
+                immediatechildrenlines.append(i['line'])
+            polygon=anythingtopolygon(poly['line'],immediatechildrenlines)
+            booleanvalue=False
+            area=polygon.area
+            length=polygon.length
+            width=2*area/length
+            print width
+            
         #if contour.isClockwise():
             #polylines.append(polyline)
         #else:
@@ -507,13 +557,14 @@ def extraction_demo(fname,letter):
     triangles_set = triangles2vectorset(triangles)
     midpoints_set = triangles_set - polylines_set
     midpoints = [averagepoint_astuple(v[0], v[1]) for v in midpoints_set]
-
     screen = setup_screen()
     draw_all(screen, polylines, [], triangles, polylinecolor=blue, trianglecolor=red)
     #draw_all(polylines, [], [])
     #draw_midpoints([],midpoints)
-    closesorted=closesort(midpoints)
-    #closesorted.append(closesorted[0])
+    #lines=points_to_all_lines(midpoints, width*1.2)
+    #draw_midpoints(screen, lines, midpoints, polylinecolor=green)
+    closesorted=closesort(midpoints,width)
+    closesorted.append(closesorted[0])
     draw_midpoints(screen, [closesorted], midpoints, polylinecolor=green)
     wait_for_keypress()
     return points
