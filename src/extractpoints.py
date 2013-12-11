@@ -343,13 +343,18 @@ def extraction_demo(fname,letter):
             allmidpoints.extend(midpoints)
             closesorted=closesort(midpoints,width)
             closesorted.append(closesorted[0])
-            allmidlines.append(closesorted)
+            sortedpairs = pairwise(closesorted)
+            def keepme(pair):
+                return is_within(pair, polygon)
+            keptpairs = filter(keepme, sortedpairs)
+            keptpoints = vectorpairs_to_pointlist(keptpairs)
+            allmidlines.append(keptpoints)
 
     draw_all(screen, polylines, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    draw_midlines(screen, allmidlines, polylines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress()
     return points
     # Note that there may be several off-curve points in a sequence, as with

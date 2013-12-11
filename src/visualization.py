@@ -12,13 +12,6 @@ red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
 blue = pygame.Color(0, 0, 255)
 
-def is_within(line, polygon):
-    # This is not where this function should live long-term...
-    from dataconvert import any_to_linestring, any_to_polygon
-    line = any_to_linestring(line)
-    polygon = any_to_polygon(polygon, [])
-    return line.difference(polygon).is_empty
-
 def setup_screen():
     SCREEN_SIZE = (1280,800)
     pygame.init()
@@ -95,14 +88,8 @@ def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylin
     # Show result
     pygame.display.update()
 
-def draw_midlines(screen, midlines, polylines, midpoints, emsize=1024, zoom=1.0, polylinecolor=green, midpointcolor=red):
-    """This function takes the list of polylines and midpoints, and draws them in pygame.
-
-    Parameters:
-        screen = the Pygame screen object to draw on
-        midlines = the calculated midlines of the object
-        polylines = the polygon contours we should never go outside
-        """
+def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinecolor=green, midpointcolor=red):
+    """This function takes the list of polylines and midpoints, and draws them in pygame."""
     global args
     deczoom = decimal.Decimal(zoom)
     for m in midpoints:
@@ -111,15 +98,11 @@ def draw_midlines(screen, midlines, polylines, midpoints, emsize=1024, zoom=1.0,
         #print (x,y)
         pixel(screen, x, y, midpointcolor)
 
-    for midline in midlines:
-        flipped = flip_polyline(midline, emsize)
+    # Close the polylines loop again prior to drawing
+    for polyline in polylines:
+        #polyline.append(polyline[0])
+        flipped = flip_polyline(polyline, emsize)
         for a, b in pairwise(flipped):
-            skip_this = True
-            for polyline in polylines:
-                if is_within([a,b], flip_polyline(polyline.coords, emsize)):
-                    skip_this = False
-            if skip_this:
-                continue
             x1 = int(a[0] * deczoom)
             y1 = int(a[1] * deczoom)
             x2 = int(b[0] * deczoom)
