@@ -167,10 +167,6 @@ def subdividebezier(points,n):
         result2 = ((n-i)**2)*points[0].y+2*i*(n-i)*points[1].y+i*i*points[2].y
         yield fontforge.point(result1/float(n*n),result2/float(n*n),True)
         i=i+1
-    if not n==int(n):
-        # For a non-integer number of subdivisions, we won't have yielded the
-        # last point in the curve -- so yield it now
-        yield fontforge.point(points[2].x, points[2].y, True)
 
 def lowest(points):
     lowest=points[0]
@@ -289,19 +285,50 @@ def extractvectors(points,length=None):
     for candidate in extractbeziers(points):
         lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
         if length:
-            beziersubdivision = lineorbezierlength/length
+            subdivision=int(math.ceil(lineorbezierlength/length))
         else:
-            beziersubdivision = 1
-        vectorsubdivision=int(math.ceil(beziersubdivision))
+            subdivision = 1
         if len(candidate) == 2:
             # It's a vector
-            subdivided=list(subdivideline(candidate,vectorsubdivision))
-            for v in pairwise(subdivided):
-                yield v
+            subdivided=list(subdivideline(candidate,subdivision))
         else:
-            subdivided=list(subdividebezier(candidate,beziersubdivision))
-            for v in pairwise(subdivided):
-                yield v
+            # It's a Bezier curve
+            subdivided=list(subdividebezier(candidate,subdivision))
+        for v in pairwise(subdivided):
+            yield v
+
+def calculate_width(polydata, fudgefactor=0.10):
+    polyline = polydata['line']
+    children = polydata.get('immediatechildren', [])
+    holes = [item['line'] for item in children]
+    approx_polygon = Polygon(polyline, holes)
+    width = 2 * approx_polygon.area / approx_polygon.length
+    # Add a fudge factor (default 5%)
+    multiplier = 1.0 + fudgefactor
+    width = width * multiplier
+
+    # Now recalculate the polyline and polygon based on the calculated width
+    # Ensure width is within the bounds set at the command line
+    width = max(width, args.minstrokewidth)
+    width = min(width, args.maxstrokewidth)
+    polydata['width'] = width
+    print width
+    return width
+
+def recalculate_polys(polydata):
+        width = polydata['width']
+        holes = polydata.get('immediatechildren', [])
+        for hole_data in holes:
+            hole_contour = hole_data['contour']
+            hole_vectors = extractvectors(hole_contour, width)
+            hole_data['line'] = vectorpairs_to_pointlist(hole_vectors)
+            hole_data['poly'] = any_to_polygon(hole_data['line'], [])
+        real_vectors = extractvectors(polydata['contour'], width)
+        real_hole_contours = [data['contour'] for data in holes]
+        real_polyline = vectorpairs_to_pointlist(real_vectors)
+
+        polydata['line'] = real_polyline
+        polydata['poly'] = any_to_polygon(real_polyline, real_hole_contours)
 
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
@@ -339,28 +366,20 @@ def extraction_demo(fname,letter):
     screen = setup_screen()
     for level in approx_level_data[::2]:
         for polydata in level:
-            polyline = polydata['line']
-            children = polydata.get('immediatechildren', [])
-            holes = [item['line'] for item in children]
-            approx_polygon = Polygon(polyline, holes)
-            width = 2 * approx_polygon.area / approx_polygon.length
-            # Now recalculate the polyline and polygon based on the calculated width
-            polydata['width'] = width
-            print width
-            # Ensure width is within the bounds set at the command line
-            width = max(width, args.minstrokewidth)
-            width = min(width, args.maxstrokewidth)
-            contour = polydata['contour']
-            real_vectors = extractvectors(contour, width)
-            real_holes = [data['contour'] for data in children]
-            real_polyline = vectorpairs_to_pointlist(real_vectors)
-            polydata['line'] = real_polyline
-            polydata['poly'] = any_to_polygon(real_polyline, real_holes)
+            width = calculate_width(polydata)
+
+            # Recalculate the data['poly'] and data['line'] shapes,
+            # subdividing Beziers and vectors based on calculated width
+            recalculate_polys(polydata)
+
+            real_polyline = polydata['line']
+            real_polygon = polydata['poly']
             polylines.append(any_to_linestring(real_polyline))
-            polylines_set = polylines_set.union(closedpolyline2vectorset(real_polyline))
+            children = polydata.get('immediatechildren', [])
             triangles = make_triangles(polydata, children)
             alltriangles.extend(triangles)
-            polygon=any_to_polygon(real_polyline,real_holes)
+
+            polylines_set = polylines_set.union(closedpolyline2vectorset(polydata['line']))
             triangles_set = triangles2vectorset(triangles)
             midpoints_set = triangles_set - polylines_set
             midpoints = [averagepoint_as_tuple(v[0], v[1]) for v in midpoints_set]
@@ -368,6 +387,7 @@ def extraction_demo(fname,letter):
             closesorted=closesort(midpoints,width)
             closesorted.append(closesorted[0])
             sortedpairs = pairwise(closesorted)
+            polygon=polydata['poly']
             def keepme(pair):
                 return is_within(pair, polygon)
             keptpairs = filter(keepme, sortedpairs)
