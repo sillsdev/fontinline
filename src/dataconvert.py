@@ -99,6 +99,13 @@ def vectorpairs_to_pointlist(pairs):
         return []
     return [pair[0] for pair in pairs] + [pairs[-1][-1]]
 
+def vectorpairs_to_linestring(pairs):
+    """This function takes a list of pairs of points and turns it into a single LineString."""
+    points = list(vectorpairs_to_pointlist(pairs))
+    if points[0] == points[-1]:
+        del points[-1]
+    return any_to_linestring(points)
+
 def triangle2vectors(t):
     """Converts a triangle object into a list of three vectors (which are pairs of Decimal tuples)."""
     v1 = [p2dt(t.a), p2dt(t.b)]

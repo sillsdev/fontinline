@@ -17,9 +17,10 @@ import p2t
 sys.path.remove('../../python-poly2tri')
 
 from dataconvert import (
-    any_to_linestring, any_to_polygon, ff_to_tuple, closedpolyline2vectorset,
-    convert_polyline_to_polytri_version, triangles2vectorset,
-    vectorpairs_to_pointlist, triangle2vectors, p2dt
+    any_to_linestring, any_to_polygon, any_to_polyline, ff_to_tuple,
+    convert_polyline_to_polytri_version, triangles2vectorset, triangle2vectors,
+    vectorpairs_to_pointlist, vectorpairs_to_linestring, p2dt,
+    closedpolyline2vectorset,
 )
 from visualization import (
     setup_screen, draw_all, draw_midlines, wait_for_keypress, red, green, blue
@@ -37,17 +38,23 @@ DEFAULT_GLYPH='u1021'
 #This section is for functions that calculate and return a different data type
 #==============
 
-def calculate_parents(polylines):
+def calculate_parents(polyline_tuples):
     """This function takes a list of fontforge points and turns it into a list of dictionaries.
     Each dictionary has the polygon, the list of points, the children (the polygons inside the
-    given polygon, and the parents (the polygons containing the given polygon)"""
-    if polylines==[]:
+    given polygon, and the parents (the polygons containing the given polygon).
+
+    Input: a set of tuples: (point list, original FF contour)
+
+    The reason for passing the original FF contour is because our dictionary data
+    structure is going to need to hold a reference to it."""
+    if polyline_tuples==[]:
         return []
     polygons=[]
-    for i in polylines:
+    for line, orig_contour in polyline_tuples:
         d=dict()
-        d['poly']=Polygon(ff_to_tuple(i))
-        d['line']=i
+        d['poly']=Polygon(ff_to_tuple(line))
+        d['line']=line
+        d['contour']=orig_contour
         d['children']=[]
         d['parents']=[]
         polygons.append(d)
@@ -276,12 +283,15 @@ def is_within(line, polygon):
 #This section is for functions that actually do things beyond calculations and converting between data types
 #================
 
-def extractvectors(points,length):
+def extractvectors(points,length=None):
     """Note: points argument should be a list (or generator) of FF points."""
     points = list(points)
     for candidate in extractbeziers(points):
         lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
-        beziersubdivision=lineorbezierlength/length
+        if length:
+            beziersubdivision = lineorbezierlength/length
+        else:
+            beziersubdivision = 1
         vectorsubdivision=int(math.ceil(beziersubdivision))
         if len(candidate) == 2:
             # It's a vector
@@ -289,7 +299,6 @@ def extractvectors(points,length):
             for v in pairwise(subdivided):
                 yield v
         else:
-            #change this to variable later
             subdivided=list(subdividebezier(candidate,beziersubdivision))
             for v in pairwise(subdivided):
                 yield v
@@ -312,31 +321,46 @@ def extraction_demo(fname,letter):
     alltriangles = []
     allmidpoints = []
     allmidlines = []
+    # Calculate stroke width by first extracting vectors with no subdivision;
+    # then convert to a Shapely polygon and calculate stroke width via the
+    # 2*area / length algorithm. Then re-extract vectors with the real
+    # stroke length.
+    calculated_stroke_width = 0
+    # Extract vectors with the real stroke width now
+    approx_outlines = []
     for contour in layer:
-        # At this point, we're dealing with FontForge objects (lists of FF points, and so on)
-        points = list(contour)
-        pointlist_with_midpoints = extrapolate_midpoints(points)
-        vectors = extractvectors(pointlist_with_midpoints,args.minstrokelength)
-        #polyline = ff_to_tuple(vectorpairs_to_pointlist(vectors))
-        polyline = vectorpairs_to_pointlist(vectors)
-        polylines.append(any_to_linestring(polyline))
-        polylines_set = polylines_set.union(closedpolyline2vectorset(polyline))
-    parent_data = calculate_parents(polylines)
-    level_data = levels(parent_data)
-    level_data = calculateimmediatechildren(level_data)
+        points = extrapolate_midpoints(list(contour))
+        approx_vectors = extractvectors(points)
+        linestring = vectorpairs_to_linestring(approx_vectors)
+        approx_outlines.append((linestring, contour))
+    approx_parent_data = calculate_parents(approx_outlines)
+    approx_level_data = levels(approx_parent_data)
+    approx_level_data = calculateimmediatechildren(approx_level_data)
     screen = setup_screen()
-    for level in level_data[::2]:
-        for poly in level:
-            triangles = (make_triangles(poly, poly.get('immediatechildren', [])))
-            alltriangles.extend(triangles)
-            immediatechildrenlines=[]
-            for i in poly.get('immediatechildren', []):
-                immediatechildrenlines.append(i['line'])
-            polygon=any_to_polygon(poly['line'],immediatechildrenlines)
-            area=polygon.area
-            length=polygon.length
-            width=2*area/length
+    for level in approx_level_data[::2]:
+        for polydata in level:
+            polyline = polydata['line']
+            children = polydata.get('immediatechildren', [])
+            holes = [item['line'] for item in children]
+            approx_polygon = Polygon(polyline, holes)
+            width = 2 * approx_polygon.area / approx_polygon.length
+            # Now recalculate the polyline and polygon based on the calculated width
+            polydata['width'] = width
             print width
+            # Ensure width is within the bounds set at the command line
+            width = max(width, args.minstrokewidth)
+            width = min(width, args.maxstrokewidth)
+            contour = polydata['contour']
+            real_vectors = extractvectors(contour, width)
+            real_holes = [data['contour'] for data in children]
+            real_polyline = vectorpairs_to_pointlist(real_vectors)
+            polydata['line'] = real_polyline
+            polydata['poly'] = any_to_polygon(real_polyline, real_holes)
+            polylines.append(any_to_linestring(real_polyline))
+            polylines_set = polylines_set.union(closedpolyline2vectorset(real_polyline))
+            triangles = make_triangles(polydata, children)
+            alltriangles.extend(triangles)
+            polygon=any_to_polygon(real_polyline,real_holes)
             triangles_set = triangles2vectorset(triangles)
             midpoints_set = triangles_set - polylines_set
             midpoints = [averagepoint_as_tuple(v[0], v[1]) for v in midpoints_set]
@@ -398,7 +422,8 @@ def parse_args():
     parser.add_argument("inputfilename", nargs="?", default=DEFAULT_FONT, help="Font file (SFD or TTF format)")
     parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name to extract")
     parser.add_argument('-z', '--zoom', action="store", type=float, default=1.0, help="Zoom level (default 1.0)")
-    parser.add_argument('-m', '--minstrokelength', action="store", type=float, default=-1, help="The minimum stroke length")
+    parser.add_argument('-m', '--minstrokewidth', action="store", type=float, default=1, help="The minimum stroke width")
+    parser.add_argument('-M', '--maxstrokewidth', action="store", type=float, default=1e100, help="The maximum stroke width")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'
