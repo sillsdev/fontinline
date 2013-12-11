@@ -150,18 +150,20 @@ def subdivideline(points,n):
         i=i+1
 
 def subdividebezier(points,n):
-    """This function takes three points (tuples), and yields n-1 evenly spaced
-    points (tuples) along the bezier defined by those points"""
+    """This function takes three fontforge points, and yields n-1 evenly spaced
+    fontforge points along the bezier defined by those points"""
     if n<=0:
         raise ValueError("you cannot subdivide into less than one piece")
-    if not type(n)==int:
-        raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i=0
     while i<=n:
         result1 = ((n-i)**2)*points[0].x+2*i*(n-i)*points[1].x+i*i*points[2].x
         result2 = ((n-i)**2)*points[0].y+2*i*(n-i)*points[1].y+i*i*points[2].y
         yield fontforge.point(result1/float(n*n),result2/float(n*n),True)
         i=i+1
+    if not n==int(n):
+        # For a non-integer number of subdivisions, we won't have yielded the
+        # last point in the curve -- so yield it now
+        yield fontforge.point(points[2].x, points[2].y, True)
 
 def lowest(points):
     lowest=points[0]
@@ -279,15 +281,16 @@ def extractvectors(points,length):
     points = list(points)
     for candidate in extractbeziers(points):
         lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
-        subdivision=int(math.ceil(lineorbezierlength/length))
+        beziersubdivision=lineorbezierlength/length
+        vectorsubdivision=int(math.ceil(beziersubdivision))
         if len(candidate) == 2:
             # It's a vector
-            subdivided=list(subdivideline(candidate,subdivision))
+            subdivided=list(subdivideline(candidate,vectorsubdivision))
             for v in pairwise(subdivided):
                 yield v
         else:
             #change this to variable later
-            subdivided=list(subdividebezier(candidate,subdivision))
+            subdivided=list(subdividebezier(candidate,beziersubdivision))
             for v in pairwise(subdivided):
                 yield v
 

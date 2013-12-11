@@ -6,6 +6,7 @@ import decimal
 import time
 from pygame.locals import QUIT, KEYDOWN
 from pygame.gfxdraw import trigon, line, pixel
+from generalfuncs import pairwise
 
 red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
@@ -17,13 +18,6 @@ def is_within(line, polygon):
     line = any_to_linestring(line)
     polygon = any_to_polygon(polygon, [])
     return line.difference(polygon).is_empty
-
-def pairwise(source):
-    # TODO: Import this function from generalfuncs.py instead of duplicating it
-    """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
-    source2 = itertools.islice(source, 1, None)
-    for a, b in itertools.izip(source, source2):
-        yield (a, b)
 
 def setup_screen():
     SCREEN_SIZE = (1280,800)

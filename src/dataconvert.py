@@ -20,6 +20,7 @@ import sys
 sys.path.append('../../python-poly2tri')
 import p2t
 sys.path.remove('../../python-poly2tri')
+from generalfuncs import pairwise
 
 def any_to_polyline(pointlist):
     """Given a point list in any format, convert it to a polyline."""
@@ -72,12 +73,6 @@ def convert_polyline_to_polytri_version(polyline):
             x, y = point[0], point[1]
         result.append(p2t.Point(x, y))
     return result
-
-def pairwise(source):
-    """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
-    source2 = itertools.islice(source, 1, None)
-    for a, b in itertools.izip(source, source2):
-        yield (a, b)
 
 def closedpolyline2vectorset(polyline):
     """Converts a polyline (which should be closed, i.e. the last point = the first point) to a set of vectors (as Decimal tuple pairs)."""
