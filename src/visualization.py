@@ -119,8 +119,8 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
     global args
     deczoom = decimal.Decimal(zoom)
     for m in midpoints:
-        x = int(m[0] * deczoom)
-        y = int((emsize-m[1]) * deczoom)
+        x = int(m[0] * zoom)
+        y = int((emsize-m[1]) * zoom)
         #print (x,y)
         pixel(screen, x, y, midpointcolor)
 

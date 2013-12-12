@@ -43,6 +43,12 @@ def any_to_polyline(pointlist):
             # It was already a list of tuples
             return pointlist
 
+def any_to_closedpolyline(pointlist):
+    line = list(any_to_polyline(pointlist))
+    if line[0] != line[-1]:
+        line.append(line[0])
+    return line
+
 def any_to_linestring(pointlist):
     try:
         return LineString(any_to_polyline(pointlist))

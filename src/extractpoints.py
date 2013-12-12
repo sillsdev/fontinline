@@ -19,7 +19,7 @@ import p2t
 sys.path.remove('../../python-poly2tri')
 
 from dataconvert import (
-    any_to_linestring, any_to_polygon, any_to_polyline, ff_to_tuple,
+    any_to_linestring, any_to_polygon, any_to_polyline, any_to_closedpolyline, ff_to_tuple,
     convert_polyline_to_polytri_version, triangles2vectorset, triangle2vectors,
     triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring, p2dt,
     closedpolyline2vectorset,
@@ -458,7 +458,11 @@ def extraction_demo(fname,letter):
                 #print line
                 m = averagepoint_as_tuple(line[0], line[1])
                 #draw_fat_point(args.screen, m, args.em, args.zoom, red)
-            holes = map(any_to_polyline, [child['line'] for child in children])
+            holes = map(any_to_closedpolyline, [child['line'] for child in children])
+            for hole in holes:
+                for line in pairwise(hole):
+                    m = averagepoint_as_tuple(line[0], line[1])
+                    #draw_fat_point(args.screen, m, args.em, args.zoom, red)
             outlines_to_filter = [outside_polyline] + holes
             real_trianglelines = filtertriangles(trianglelines, outlines_to_filter)
             polylines_set = closedpolyline2vectorset(polydata['line'])
@@ -469,7 +473,7 @@ def extraction_demo(fname,letter):
             #midpoints = [averagepoint_as_tuple_of_decimals(v[0], v[1]) for v in midpoints_set]
             for m in midpoints:
                 n = [float(val) for val in m]
-                draw_fat_point(screen, m, args.em, args.zoom, blue)
+                #draw_fat_point(screen, m, args.em, args.zoom, blue)
             allmidpoints.extend(midpoints)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
@@ -516,7 +520,7 @@ def extraction_demo(fname,letter):
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    #draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress(args.em, args.zoom)
     return points
     # Note that there may be several off-curve points in a sequence, as with
