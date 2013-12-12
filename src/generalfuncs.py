@@ -55,7 +55,7 @@ def angle(point1, point2):
     ay = uy(point1)
     bx = ux(point2)
     by = uy(point2)
-    return 180 * math.atan2(by-ay, bx-ax) / math.pi
+    return 180.0 * math.atan2(by-ay, bx-ax) / math.pi
 
 def similar_direction(point1, point2, point3, tolerance=30):
     """Check whether points 2 and 3 are in a similar direction from point 1.

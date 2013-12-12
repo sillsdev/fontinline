@@ -327,7 +327,8 @@ def extractvectors(points,length=None):
             subdivision = 1
         if len(candidate) == 2:
             # It's a vector
-            subdivided=list(subdivideline(candidate,subdivision))
+            #subdivided=list(subdivideline(candidate,subdivision))
+            subdivided=list(subdivideline(candidate,1))
         else:
             # It's a Bezier curve
             subdivided=list(subdividebezier(candidate,subdivision))
@@ -494,6 +495,22 @@ def get_glyph(fname, letter):
     glyph = font[codepoint]
     return glyph
 
+def find_straight_lines(ffcontour):
+    for a, b in pairwise(ffcontour):
+        if a.on_curve and b.on_curve:
+            yield a, b
+    try:
+        ffcontour[0]
+    except IndexError:
+        # Can't check first & last point, so just give up
+        return
+    else:
+        if ffcontour[0].on_curve and ffcontour[-1].on_curve:
+            yield ffcontour[-1], ffcontour[0]
+
+def estimate_strokewidth(ffcontour):
+    pass
+
 DEBUG=True
 def debug(s, *args, **kwargs):
     if not DEBUG:
@@ -514,17 +531,28 @@ def new_extraction_method(fontfilename, lettername):
     data.outlines = []
     for contour in glyph.foreground:
         debug("This {}clockwise contour has {} points:", ('' if contour.isClockwise() else 'counter-'), len(contour))
-        debug(contour)
+        #debug(contour)
         outline = AttrDict()
         outline.contour = contour
-        points = extrapolate_midpoints(list(contour))
         # Many contours will have two or more off-curve points in a row. The
         # TrueType spec allows for this; the implied on-curve point is the point
-        # precisely between the two off-curve points.
-        outline.polyline = any_to_polyline(contour)
-        outline.linestring = any_to_linestring(contour)
+        # precisely between the two off-curve points. extrapolate_midpoints() will
+        # give us an outline with on-curve points in the right places.
+        outline.complete_contour = list(extrapolate_midpoints(list(contour), False))
+        # Now we should work out the stroke width of the contour. First find any straight lines...
+        strokewidth = 1e999
+        for a, b in find_straight_lines(outline.complete_contour):
+            debug("Found a straight line: {}", (a,b))
+            distance = vectorlength(a,b)
+            strokewidth = min(distance, strokewidth)
+        if strokewidth < 1e999:
+            debug("Found stroke width of {}", strokewidth)
+        else:
+            debug("Couldn't find stroke width")
+        outline.polyline = any_to_polyline(outline.complete_contour)
+        outline.linestring = any_to_linestring(outline.complete_contour)
         data.outlines.append(outline)
-        debug(list(outline.linestring.coords))
+        #debug(list(outline.linestring.coords))
 
 def parse_args():
     "Parse the arguments the user passed in"
@@ -546,8 +574,8 @@ def main():
     a sanity check to make sure everything works properly."""
     global args
     args = parse_args()
-    extraction_demo(args.inputfilename, args.glyphname)
     #new_extraction_method(args.inputfilename, args.glyphname)
+    extraction_demo(args.inputfilename, args.glyphname)
     return 0
 
 if __name__ == "__main__":

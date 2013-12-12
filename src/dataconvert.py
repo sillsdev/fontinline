@@ -28,20 +28,27 @@ def any_to_polyline(pointlist):
         # It's a Polygon; just return the *outside* line
         return pointlist.exterior.coords
     elif hasattr(pointlist, 'coords'):
-        # It's a LineString
+        # It's a LineString or LinearRing
         return pointlist.coords
-    elif not pointlist:
-        # It's an empty list
-        return []
-    elif hasattr(pointlist[0], 'x'):
-        # It's a list of FontForge (or p2t) points
-        return [(p.x, p.y) for p in pointlist]
     else:
-        # It was already a list of tuples
-        return pointlist
+        # It might be a generator
+        pointlist = list(pointlist)
+        if not pointlist:
+            # It's an empty list
+            return []
+        elif hasattr(pointlist[0], 'x'):
+            # It's a list of FontForge (or p2t) points
+            return [(p.x, p.y) for p in pointlist]
+        else:
+            # It was already a list of tuples
+            return pointlist
 
 def any_to_linestring(pointlist):
-    return LineString(any_to_polyline(pointlist))
+    try:
+        return LineString(any_to_polyline(pointlist))
+    except ValueError:
+        print str(list(pointlist))
+        raise
 
 def any_to_polygon(outside, holes):
     outside = any_to_polyline(outside)
