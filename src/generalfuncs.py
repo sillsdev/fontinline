@@ -8,6 +8,7 @@ import functools
 import fontforge
 import math
 import decimal
+import math
 
 def pairwise(source):
     """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
@@ -120,6 +121,44 @@ def are_points_equal(a, b, epsilon=1e-9):
         x1, y1 = a[0], a[1]
         x2, y2 = b[0], b[1]
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
+
+def appended(elementlist, element):
+    newlist = elementlist[:]
+    newlist.append(element)
+    return newlist
+
+def iterfunc(func, startvalue):
+    """This function takes a function and a start value and
+    returns a function that will go through all elements of
+    the list and the nested lists, and for each element such
+    that the predicate is true, the function will modify the
+    result using func and function(element)."""
+    def identity(anything):
+        return anything
+    
+    def alwaysTrue(*args, **kwargs):
+        return True
+
+    def newfunction(nestediterable, pred = alwaysTrue, function = identity):
+        result=startvalue
+        for i in nestediterable:
+            try:
+                iterable = iter(i)
+            except TypeError:
+                if pred(i):
+                    print function(i)
+                    result = func(result, function(i))
+                    print result
+            else:
+                result = func(result, newfunction(iterable, pred, function))
+        return result
+    
+    def new2(nestediterable, predicate):
+        return newfunction(nestediterable, pred = predicate)
+    
+    def new3(nestediterable, usedfunction):
+        return newfunction(nestediterable, function = usedfunction)
+    return newfunction, new2, new3
 
 def are_lines_equal(v1, v2, epsilon=1e-9):
     #simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
