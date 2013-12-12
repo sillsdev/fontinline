@@ -11,7 +11,6 @@ import functools
 import collections
 import shapely
 import warnings
-import decimal
 import math
 from shapely.geometry import Polygon, LineString, Point
 sys.path.append('../../python-poly2tri')
@@ -20,9 +19,8 @@ sys.path.remove('../../python-poly2tri')
 
 from dataconvert import (
     any_to_linestring, any_to_polygon, any_to_polyline, any_to_closedpolyline, ff_to_tuple,
-    convert_polyline_to_polytri_version, triangles2vectorset, triangle2vectors,
-    triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring, p2dt,
-    closedpolyline2vectorset,
+    convert_polyline_to_polytri_version,
+    triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring,
 )
 from visualization import (
     setup_screen, draw_all, draw_midlines, wait_for_keypress, red, green, blue,
@@ -31,7 +29,7 @@ from visualization import (
 from generalfuncs import (
     pairwise, by_threes,
     vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
-    averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuple_of_decimals,
+    averagepoint_as_ffpoint, averagepoint_as_tuple,
     comp, itermap, iterfilter, iterfilter_stopatvectors, AttrDict,
     closer, closerish, further, angle, similar_direction, shallow_angle,
 )
@@ -184,6 +182,31 @@ def lowest(points):
         i=i+1
     return (lowest, i)
 
+def closesort3(point, points, epsilon=0.01):
+    if len(points) == 0:
+        return []
+    def distance(otherpoint):
+        return vectorlengthastuple(point, otherpoint)
+    distances = map(distance, points)
+    distances_with_points = list(zip(distances, points))
+    distances_with_points.sort()
+    if distances_with_points[0][0] < epsilon:
+        # The target point was in the list; skip it
+        del distances_with_points[0]
+    return distances_with_points
+
+def twoclosestpoints(point, points, epsilon=0.01):
+    distances_with_points = closesort3(point, points, epsilon)
+    return [point for distance, point in distances_with_points[:2]]
+
+def closestpoint(point, points, epsilon=0.01):
+    twopoints = twoclosestpoints(point, points, epsilon)
+    if not twopoints:
+        return None
+    else:
+        return twopoints[0]
+
+"""Old algorithm for closestpoint was:
 def closestpoint(point,points):
     closest=points[0]
     closestidx=0
@@ -195,6 +218,7 @@ def closestpoint(point,points):
         closest=newclosest
         i=i+1
     return (closest, closestidx)
+"""
 
 def pointscloserthan(point,points,radius):
     closelist=[]
@@ -401,6 +425,29 @@ def recalculate_polys(polydata):
         polydata['line'] = real_polyline
         polydata['poly'] = any_to_polygon(real_polyline, real_hole_contours)
 
+def saferemove(item, list):
+    """Remove an item from a list, ignoring errors if it wasn't there"""
+    try:
+        list.remove(item)
+    except ValueError:
+        pass
+
+def calculate_midlines(midpoints, endpoints):
+    # Algorithm: start at endpoints. Draw midlines as long as there's an obvious
+    # direction to take. When there's no longer an obvious direction, give up
+    # and print a message. (Eventually we'll improve this beyond just "print a message".
+    unused_points = midpoints[:]
+    for start_point in endpoints:
+        saferemove(start_point, unused_points)
+        next_point = closestpoint(start_point, unused_points)
+        while next_point is not None:
+            saferemove(next_point, unused_points)
+            yield start_point, next_point
+            next_point = closestpoint(next_point, unused_points)
+        if len(unused_points) == 0 or next_point is None:
+            break
+    # This is the simple "keep going no matter what" algorithm, and it's wrong. But it's good enough to start from.
+
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
     global args
@@ -416,8 +463,6 @@ def extraction_demo(fname,letter):
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     polylines = []
     polylines_to_draw = []
-    polylines_set = set()
-    triangles_set = set()
     alltriangles = []
     allmidpoints = []
     allmidlines = []
@@ -467,12 +512,8 @@ def extraction_demo(fname,letter):
                 polylines_to_draw.append(hole)
             outlines_to_filter = [outside_polyline] + holes
             real_trianglelines = filtertriangles(trianglelines, outlines_to_filter)
-            polylines_set = closedpolyline2vectorset(polydata['line'])
-            triangles_set = triangles2vectorset(triangles)
-            midpoints_set = triangles_set - polylines_set
             midpoints = [averagepoint_as_tuple(v[0], v[1]) for t in real_trianglelines for v in t]
             print len(midpoints), 'midpoints found'
-            #midpoints = [averagepoint_as_tuple_of_decimals(v[0], v[1]) for v in midpoints_set]
             for m in midpoints:
                 n = [float(val) for val in m]
                 #draw_fat_point(screen, m, args.em, args.zoom, blue)
@@ -515,7 +556,9 @@ def extraction_demo(fname,letter):
             #print endpoints
 
             # Calculate the midlines somehow, then append them
-            midlines = []  # Replace this with actual calculation
+            midlines = vectorpairs_to_pointlist(calculate_midlines(midpoints, endpoints))
+            for m in midlines:
+                print m
             allmidlines.append(midlines)
 
     draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)

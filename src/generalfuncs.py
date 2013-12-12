@@ -7,8 +7,6 @@ import itertools
 import functools
 import fontforge
 import math
-import decimal
-import math
 import operator
 
 def pairwise(source):
@@ -42,8 +40,6 @@ def vectorlength(point1, point2):
 
 def ux(p):
     """Extract the x value of a point in any format"""
-    if type(p) is float or type(p) is decimal.Decimal:
-        raise TypeError, "Should have gotten a point; got {} instead".format(p)
     try:
         result = p.x
     except AttributeError:
@@ -179,13 +175,6 @@ def averagepoint_as_ffpoint(point1, point2):
     avgx = (point1.x + point2.x) / 2.0
     avgy = (point1.y + point2.y) / 2.0
     avgpoint = fontforge.point(avgx, avgy, True)
-    return avgpoint
-
-def averagepoint_as_tuple_of_decimals(point1, point2):
-    """This function takes two tuples, and returns the average of them, using Decimal objects instead of floats"""
-    avgx = (point1[0] + point2[0]) / decimal.Decimal(2)
-    avgy = (point1[1] + point2[1]) / decimal.Decimal(2)
-    avgpoint = (avgx, avgy)
     return avgpoint
 
 def averagepoint_as_tuple(point1, point2):

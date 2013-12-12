@@ -2,7 +2,6 @@
 
 import pygame
 import itertools
-import decimal
 import time
 from pygame.locals import QUIT, KEYDOWN, MOUSEBUTTONDOWN
 from pygame.gfxdraw import trigon, line, pixel, filled_circle
@@ -55,7 +54,6 @@ def flip_polyline(polylinelist, emsize):
     return result
 
 def draw_fat_point(screen, point, emsize=1024, zoom=1.0, color=red):
-    deczoom = decimal.Decimal(zoom)
     try:
         x = int(point.x * zoom)
         y = int((emsize-point.y) * zoom)
@@ -64,11 +62,11 @@ def draw_fat_point(screen, point, emsize=1024, zoom=1.0, color=red):
         y = int((emsize-point[1]) * zoom)
     except TypeError:
         try:
-            x = int(point.x * deczoom)
-            y = int((emsize-point.y) * deczoom)
+            x = int(point.x * zoom)
+            y = int((emsize-point.y) * zoom)
         except AttributeError:
-            x = int(point[0] * deczoom)
-            y = int((emsize-point[1]) * deczoom)
+            x = int(point[0] * zoom)
+            y = int((emsize-point[1]) * zoom)
     filled_circle(screen, x, y, 10, color)
 
 def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylinecolor=green, holecolor=blue, trianglecolor=red):
@@ -117,7 +115,6 @@ def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylin
 def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinecolor=green, midpointcolor=red):
     """This function takes the list of polylines and midpoints, and draws them in pygame."""
     global args
-    deczoom = decimal.Decimal(zoom)
     for m in midpoints:
         x = int(m[0] * zoom)
         y = int((emsize-m[1]) * zoom)
@@ -129,10 +126,10 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
         #polyline.append(polyline[0])
         flipped = flip_polyline(polyline, emsize)
         for a, b in pairwise(flipped):
-            x1 = int(a[0] * deczoom)
-            y1 = int(a[1] * deczoom)
-            x2 = int(b[0] * deczoom)
-            y2 = int(b[1] * deczoom)
+            x1 = int(a[0] * zoom)
+            y1 = int(a[1] * zoom)
+            x2 = int(b[0] * zoom)
+            y2 = int(b[1] * zoom)
             line(screen, x1, y1, x2, y2, polylinecolor)
             pygame.display.update()
     # Show result
