@@ -29,6 +29,28 @@ def vectorlength(point1, point2):
     length=squaredlength**0.5
     return length
 
+def ux(p):
+    """Extract the x value of a point in any format"""
+    try:
+        result = p.x
+    except AttributeError:
+        result = p[0]
+    return result
+
+def uy(p):
+    """Extract the y value of a point in any format"""
+    try:
+        result = p.y
+    except AttributeError:
+        result = p[1]
+    return result
+
+def comp(f):
+    """This is basically Clojure's (complement) function."""
+    def inner(*args, **kwargs):
+        return not f(*args, **kwargs)
+    return inner
+
 def are_points_equal(a, b, epsilon=1e-9):
     """Compares points a and b and returns true if they're equal.
 
@@ -43,6 +65,11 @@ def are_points_equal(a, b, epsilon=1e-9):
         x1, y1 = a[0], a[1]
         x2, y2 = b[0], b[1]
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
+
+def are_lines_equal(v1, v2, epsilon=1e-9):
+    simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
+    reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
+    return (simple_equality or reversed_equality)
 
 def averagepoint_as_ffpoint(point1, point2):
     """This function takes two fontforge points, and finds the average of them"""
