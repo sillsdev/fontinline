@@ -292,9 +292,10 @@ def is_within(line, polygon):
     return line.difference(polygon).is_empty
 
 def iscloseto(v, outline):
-    """Returns true if vector v is almost identical to any vector in the outline"""
-    print "iscloseto({}, {})".format(v, outline)
-    return any(are_lines_equal(v, test, epsilon=1.0) for test in outline)
+    """Returns true if vector v is almost identical to any vector in the outline.
+    Outline format expected: polyline"""
+    #print "iscloseto({}, {})".format(v, outline)
+    return any(are_lines_equal(v, test, epsilon=1.0) for test in pairwise(outline))
 
 def filtertriangles(triangles, outlines):
     """Remove all triangle edges that coincide with any edge of the outline or any holes
@@ -302,9 +303,13 @@ def filtertriangles(triangles, outlines):
     # Convert triangles to list of 3-element lists of 2-tuples
     # E.g., [[(p1,p2),(p2,p3),(p3,p1)], [(p4,p5),(p5,p6),(p6,p4)], ...]
     def isvalid(line):
-        print "isvalid({})".format(line)
+        #print "isvalid({})".format(line)
+        if any(iscloseto(line, outline) for outline in outlines):
+            m = averagepoint_as_tuple(line[0], line[1])
+            #draw_fat_point(args.screen, m, args.em, args.zoom, red)
         return not any(iscloseto(line, outline) for outline in outlines)
-    if len(triangles) <= 20:
+    #if len(triangles) <= 2000:
+    if False:
         print "DEBUG: triangles before filtering:"
         import pprint
         pprint.pprint(triangles)
@@ -431,6 +436,7 @@ def extraction_demo(fname,letter):
     approx_level_data = levels(approx_parent_data)
     approx_level_data = calculateimmediatechildren(approx_level_data)
     screen = setup_screen()
+    args.screen = screen
     for level in approx_level_data[::2]:
         for polydata in level:
             width = calculate_width(polydata)
@@ -446,13 +452,21 @@ def extraction_demo(fname,letter):
             triangles = make_triangles(polydata, children)
             alltriangles.extend(triangles)
             trianglelines = map(triangle2lines, triangles)
-            outlines_to_filter = any_to_polyline(real_polyline)
+            outside_polyline = any_to_polyline(real_polyline)
+            outside_polyline.append(outside_polyline[0])  # Close it
+            for line in pairwise(outside_polyline):
+                #print line
+                m = averagepoint_as_tuple(line[0], line[1])
+                #draw_fat_point(args.screen, m, args.em, args.zoom, red)
             holes = map(any_to_polyline, [child['line'] for child in children])
-            filtertriangles(trianglelines, outlines_to_filter)
+            outlines_to_filter = [outside_polyline] + holes
+            real_trianglelines = filtertriangles(trianglelines, outlines_to_filter)
             polylines_set = closedpolyline2vectorset(polydata['line'])
             triangles_set = triangles2vectorset(triangles)
             midpoints_set = triangles_set - polylines_set
-            midpoints = [averagepoint_as_tuple_of_decimals(v[0], v[1]) for v in midpoints_set]
+            midpoints = [averagepoint_as_tuple(v[0], v[1]) for t in real_trianglelines for v in t]
+            print len(midpoints), 'midpoints found'
+            #midpoints = [averagepoint_as_tuple_of_decimals(v[0], v[1]) for v in midpoints_set]
             for m in midpoints:
                 n = [float(val) for val in m]
                 draw_fat_point(screen, m, args.em, args.zoom, blue)
@@ -502,7 +516,7 @@ def extraction_demo(fname,letter):
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    #draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress(args.em, args.zoom)
     return points
     # Note that there may be several off-curve points in a sequence, as with

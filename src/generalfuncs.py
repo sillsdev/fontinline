@@ -168,10 +168,10 @@ def compose(func1, func2):
 comp = functools.partial(compose, operator.not_)
 
 def are_lines_equal(v1, v2, epsilon=1e-9):
-    #simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
-    #reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
-    reversed_equality = False
-    simple_equality = False
+    simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
+    reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
+    #reversed_equality = False
+    #simple_equality = False
     return (simple_equality or reversed_equality)
 
 def averagepoint_as_ffpoint(point1, point2):

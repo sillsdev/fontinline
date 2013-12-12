@@ -55,13 +55,20 @@ def flip_polyline(polylinelist, emsize):
     return result
 
 def draw_fat_point(screen, point, emsize=1024, zoom=1.0, color=red):
-    zoom = decimal.Decimal(zoom)
+    deczoom = decimal.Decimal(zoom)
     try:
         x = int(point.x * zoom)
         y = int((emsize-point.y) * zoom)
     except AttributeError:
         x = int(point[0] * zoom)
         y = int((emsize-point[1]) * zoom)
+    except TypeError:
+        try:
+            x = int(point.x * deczoom)
+            y = int((emsize-point.y) * deczoom)
+        except AttributeError:
+            x = int(point[0] * deczoom)
+            y = int((emsize-point[1]) * deczoom)
     filled_circle(screen, x, y, 10, color)
 
 def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylinecolor=green, holecolor=blue, trianglecolor=red):
