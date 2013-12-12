@@ -5,7 +5,7 @@ import itertools
 import decimal
 import time
 from pygame.locals import QUIT, KEYDOWN
-from pygame.gfxdraw import trigon, line, pixel
+from pygame.gfxdraw import trigon, line, pixel, filled_circle
 from generalfuncs import pairwise
 
 red = pygame.Color(255, 0, 0)
@@ -44,6 +44,16 @@ def flip_polyline(polylinelist, emsize):
                 x, y = point[0], emsize-point[1]
                 result.append(tuple([x,y]))
     return result
+
+def draw_fat_point(screen, point, emsize=1024, zoom=1.0, color=red):
+    zoom = decimal.Decimal(zoom)
+    try:
+        x = int(point.x * zoom)
+        y = int((emsize-point.y) * zoom)
+    except AttributeError:
+        x = int(point[0] * zoom)
+        y = int((emsize-point[1]) * zoom)
+    filled_circle(screen, x, y, 10, color)
 
 def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylinecolor=green, holecolor=blue, trianglecolor=red):
     """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.

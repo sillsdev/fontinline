@@ -116,6 +116,12 @@ def triangle2vectors(t):
     v3 = tuple(sorted(v3))
     return [v1, v2, v3]
 
+def triangle2lines(t):
+    l1 = [p2ft(t.a), p2ft(t.b)]
+    l2 = [p2ft(t.b), p2ft(t.c)]
+    l3 = [p2ft(t.c), p2ft(t.a)]
+    return [l1, l2, l3]
+
 epsilon_decimal = decimal.Decimal('1e-9')
 def p2dt(point):
     """Converts a point into a representation using a tuple of Python's Decimal objects."""
@@ -127,3 +133,10 @@ def p2dt(point):
     dy = decimal.Decimal(y).quantize(epsilon_decimal, decimal.ROUND_HALF_UP)
     return (dx, dy)
 
+def p2ft(point):
+    """Converts a point into a representation using a tuple of float objects."""
+    try:
+        x, y = point.x, point.y
+    except AttributeError:
+        x, y = point[0], point[1]
+    return (x, y)

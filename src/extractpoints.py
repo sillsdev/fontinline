@@ -7,6 +7,8 @@ import argparse
 import sys
 import os, os.path
 import itertools
+import functools
+import collections
 import shapely
 import warnings
 import decimal
@@ -19,16 +21,18 @@ sys.path.remove('../../python-poly2tri')
 from dataconvert import (
     any_to_linestring, any_to_polygon, any_to_polyline, ff_to_tuple,
     convert_polyline_to_polytri_version, triangles2vectorset, triangle2vectors,
-    vectorpairs_to_pointlist, vectorpairs_to_linestring, p2dt,
+    triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring, p2dt,
     closedpolyline2vectorset,
 )
 from visualization import (
-    setup_screen, draw_all, draw_midlines, wait_for_keypress, red, green, blue
+    setup_screen, draw_all, draw_midlines, wait_for_keypress, red, green, blue,
+    draw_fat_point,
 )
 from generalfuncs import (
-    pairwise, vectorlengthastuple, vectorlength, are_points_equal,
-    averagepoint_as_ffpoint, averagepoint_as_tuple,
-    closer, closerish, further,
+    pairwise, vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
+    averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuple_of_decimals,
+    comp, itermap, iterfilter, iterfilter_stopatvectors, AttrDict,
+    closer, closerish, further, angle, similar_direction,
 )
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
@@ -123,24 +127,24 @@ def extractbeziers(points):
 #This section is for functions that do extra calculations
 #==============
 
-def extrapolate_midpoints(points):
+def extrapolate_midpoints(points, closecurve=True):
     """This function takes a list of fontforge points and if two consecutive points are off-curve
-    it extrapolates the on-curve point between them."""
-    if not (points[-1] == points[0]):
-        points.append(points[0])  # Close the curve
-    result = []
+    it extrapolates the on-curve point between them. It will also, optionally, add
+    the final point to the curve. (This is not always necessary.)"""
+    if closecurve:
+        if not (points[-1] == points[0]):
+            points.append(points[0])  # Close the curve
     for a, b in pairwise(points):
         if a.on_curve or b.on_curve:
-            # No need to extrapoalate for this pair
-            result.append(a)
+            # No need to extrapolate for this pair
+            yield a
         else:
             midpoint = averagepoint_as_ffpoint(a, b)
-            result.append(a)
-            result.append(midpoint)
+            yield a
+            yield midpoint
     # Last point will not have been part of any pairs, so it won't have been
-    # appended. Append it now.
-    result.append(points[-1])
-    return result
+    # yielded yet. E.g.
+    yield points[-1]
 
 def subdivideline(points,n):
     """This function takes a list of tuples or lists and finds n-1 evenly spaced points (tuples)
@@ -161,10 +165,12 @@ def subdividebezier(points,n):
     fontforge points along the bezier defined by those points"""
     if n<=0:
         raise ValueError("you cannot subdivide into less than one piece")
+    if not type(n)==int:
+        raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i=0
     while i<=n:
-        result1 = ((n-i)**2)*points[0].x+2*i*(n-i)*points[1].x+i*i*points[2].x
-        result2 = ((n-i)**2)*points[0].y+2*i*(n-i)*points[1].y+i*i*points[2].y
+        result1 = ((n-i)**2)*points[0].x + 2*i*(n-i)*points[1].x + i*i*points[2].x
+        result2 = ((n-i)**2)*points[0].y + 2*i*(n-i)*points[1].y + i*i*points[2].y
         yield fontforge.point(result1/float(n*n),result2/float(n*n),True)
         i=i+1
 
@@ -264,6 +270,13 @@ def points_to_all_lines(points,length):
             points=[closepoints[0]]+points
     return lines
 
+def find_neighbors(points, stroke_width):
+    neighbors = {}
+    for point in points:
+        neighborlist = pointscloserthan(point, points, stroke_width)
+        neighbors[point] = neighborlist
+    return neighbors
+
 def is_within(line, polygon):
     if isinstance(line, LineString):
         pass
@@ -275,6 +288,29 @@ def is_within(line, polygon):
         polygon = any_to_polygon(polygon, [])
     return line.difference(polygon).is_empty
 
+def iscloseto(v, outline):
+    """Returns true if vector v is almost identical to any vector in the outline"""
+    print "iscloseto({}, {})".format(v, outline)
+    return any(are_lines_equal(v, test, epsilon=1.0) for test in outline)
+
+def filtertriangles(triangles, outlines):
+    """Remove all triangle edges that coincide with any edge of the outline or any holes
+    Note that the "outlines" parameter should be a list of the outside polyline and the holes."""
+    # Convert triangles to list of 3-element lists of 2-tuples
+    # E.g., [[(p1,p2),(p2,p3),(p3,p1)], [(p4,p5),(p5,p6),(p6,p4)], ...]
+    def isvalid(line):
+        print "isvalid({})".format(line)
+        return not any(iscloseto(line, outline) for outline in outlines)
+    if len(triangles) <= 20:
+        print "DEBUG: triangles before filtering:"
+        import pprint
+        pprint.pprint(triangles)
+        print "DEBUG: outlines before filtering"
+        pprint.pprint(outlines)
+        print "DEBUG: triangles after filtering:"
+        pprint.pprint(list(iterfilter_stopatvectors(isvalid, triangles)))
+    return iterfilter_stopatvectors(isvalid, triangles)
+
 #================
 #This section is for functions that actually do things beyond calculations and converting between data types
 #================
@@ -285,7 +321,8 @@ def extractvectors(points,length=None):
     for candidate in extractbeziers(points):
         lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
         if length:
-            subdivision=int(math.ceil(lineorbezierlength/length))
+            subdivision=int(math.floor(lineorbezierlength/length))
+            subdivision=max(subdivision,1)
         else:
             subdivision = 1
         if len(candidate) == 2:
@@ -295,9 +332,10 @@ def extractvectors(points,length=None):
             # It's a Bezier curve
             subdivided=list(subdividebezier(candidate,subdivision))
         for v in pairwise(subdivided):
+            print v
             yield v
 
-def calculate_width(polydata, fudgefactor=0.10):
+def calculate_width(polydata, fudgefactor=0.05):
     polyline = polydata['line']
     children = polydata.get('immediatechildren', [])
     holes = [item['line'] for item in children]
@@ -345,6 +383,7 @@ def extraction_demo(fname,letter):
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     polylines = []
     polylines_set = set()
+    triangles_set = set()
     alltriangles = []
     allmidpoints = []
     allmidlines = []
@@ -378,21 +417,36 @@ def extraction_demo(fname,letter):
             children = polydata.get('immediatechildren', [])
             triangles = make_triangles(polydata, children)
             alltriangles.extend(triangles)
-
-            polylines_set = polylines_set.union(closedpolyline2vectorset(polydata['line']))
+            trianglelines = map(triangle2lines, triangles)
+            outlines_to_filter = any_to_polyline(real_polyline)
+            holes = map(any_to_polyline, [child['line'] for child in children])
+            filtertriangles(trianglelines, outlines_to_filter)
+            polylines_set = closedpolyline2vectorset(polydata['line'])
             triangles_set = triangles2vectorset(triangles)
             midpoints_set = triangles_set - polylines_set
-            midpoints = [averagepoint_as_tuple(v[0], v[1]) for v in midpoints_set]
+            midpoints = [averagepoint_as_tuple_of_decimals(v[0], v[1]) for v in midpoints_set]
             allmidpoints.extend(midpoints)
-            closesorted=closesort(midpoints,width)
-            closesorted.append(closesorted[0])
-            sortedpairs = pairwise(closesorted)
-            polygon=polydata['poly']
-            def keepme(pair):
-                return is_within(pair, polygon)
-            keptpairs = filter(keepme, sortedpairs)
-            keptpoints = vectorpairs_to_pointlist(keptpairs)
-            allmidlines.append(keptpoints)
+
+            # Step 1: Find neighbors (points within distance X, about half the stroke width)
+            neighbor_distance = width * 0.7
+            all_neighbors = find_neighbors(midpoints, neighbor_distance)
+
+            # Step 2: Any points with all neighbors in the "same direction" are endpoints
+            # Note that "same direction" is a fuzzy concept: how wide of an arc needs
+            # to contain all the neighbors before they count as "same direction"?
+            # 60 degrees? 120 degrees? After all, several of its neighbors may
+            # be along a curve...
+            def is_endpoint(neighborlist):
+                return len(neighborlist) == 1
+            endpoints = [point for (point, neighbors) in all_neighbors.items() if len(neighbors) == 1]
+            #print "Identified endpoints:"
+            #print endpoints
+            for p in endpoints:
+                draw_fat_point(screen, p, args.em, args.zoom, green)
+
+            # Calculate the midlines somehow, then append them
+            midlines = []  # Replace this with actual calculation
+            allmidlines.append(midlines)
 
     draw_all(screen, polylines, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
     #draw_midlines(screen,[],midpoints)
@@ -429,10 +483,48 @@ def make_triangles(polygon_data, holes=None):
     triangles.extend(cdt.triangulate())
     return triangles
 
-# Demo of how to extract the control points from a font.
-# Run "sudo apt-get install fonts-sil-padauk" before calling this function.
-# Extending this function to arbitrary fonts and glyphs is left as an exercise
-# for the reader. ;-)
+def get_glyph(fname, letter):
+    font = fontforge.open(fname)
+    if isinstance(letter, int):
+        codepoint = letter
+    elif letter.startswith('U+'):
+        codepoint = int(letter[2:], 16)
+    else:
+        codepoint = letter
+    glyph = font[codepoint]
+    return glyph
+
+DEBUG=True
+def debug(s, *args, **kwargs):
+    if not DEBUG:
+        return
+    if not args and not kwargs:
+        print s
+    else:
+        print s.format(*args, **kwargs)
+
+def new_extraction_method(fontfilename, lettername):
+    glyph = get_glyph(fontfilename, lettername)
+    emsize = glyph.font.em
+    debug("Glyph {} has em size {}", glyph.glyphname, emsize)
+    # Data formats we'll use:
+    # 1) Lists of Fontforge points forming a closed outline. The lists are not closed. These are "ffoutlines".
+    # 2) Lists of (x,y) tuples (x and y are floats) forming a closed outline. The lists are not closed. These are "polylines".
+    data = AttrDict()
+    data.outlines = []
+    for contour in glyph.foreground:
+        debug("This {}clockwise contour has {} points:", ('' if contour.isClockwise() else 'counter-'), len(contour))
+        debug(contour)
+        outline = AttrDict()
+        outline.contour = contour
+        points = extrapolate_midpoints(list(contour))
+        # Many contours will have two or more off-curve points in a row. The
+        # TrueType spec allows for this; the implied on-curve point is the point
+        # precisely between the two off-curve points.
+        outline.polyline = any_to_polyline(contour)
+        outline.linestring = any_to_linestring(contour)
+        data.outlines.append(outline)
+        debug(list(outline.linestring.coords))
 
 def parse_args():
     "Parse the arguments the user passed in"
@@ -455,8 +547,7 @@ def main():
     global args
     args = parse_args()
     extraction_demo(args.inputfilename, args.glyphname)
-    #extraction_demo('/usr/share/fonts/truetype/padauk/Padauk.ttf',0xaa75)
-    #extraction_demo('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',0x0e3f)
+    #new_extraction_method(args.inputfilename, args.glyphname)
     return 0
 
 if __name__ == "__main__":

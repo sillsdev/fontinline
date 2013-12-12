@@ -6,6 +6,7 @@ operations (like averagepoint or pairwise) go in this library.
 import itertools
 import functools
 import fontforge
+import math
 import decimal
 
 def pairwise(source):
@@ -46,6 +47,26 @@ def uy(p):
         result = p[1]
     return result
 
+def angle(point1, point2):
+    """Calculate the angle (in degrees) of the line between point1 and point2.
+    Angles are calculated clockwise from the X axis, so that (0,0)->(1,0) is
+    0 degrees, and (0,0)->(0,1) is 90 degrees."""
+    ax = ux(point1)
+    ay = uy(point1)
+    bx = ux(point2)
+    by = uy(point2)
+    return 180 * math.atan2(by-ay, bx-ax) / math.pi
+
+def similar_direction(point1, point2, point3, tolerance=30):
+    """Check whether points 2 and 3 are in a similar direction from point 1.
+    "Similar" can be redefined by changing the tolerance parameter (default 30 degrees)."""
+    angle_to_p2 = angle(point1, point2)
+    angle_to_p3 = angle(point1, point3)
+    diff = abs(angle_to_p2 - angle_to_p3)
+    while diff > 180:
+        diff -= 360
+    return abs(diff) < tolerance
+
 def comp(f):
     """This is basically Clojure's (complement) function."""
     def inner(*args, **kwargs):
@@ -59,6 +80,31 @@ def itermap(f, nestedlist):
         return f(nestedlist)
     else:
         return map(functools.partial(itermap, f), iterable)
+
+def iterfilter(predicate, nestedlist):
+    for item in nestedlist:
+        try:
+            iterable = iter(item)
+        except TypeError:
+            if predicate(item):
+                yield item
+        else:
+            yield list(iterfilter(predicate, iterable))
+
+def iterfilter_stopatvectors(predicate, nestedlist):
+    """Special version of iterfilter that will stop at vectors.
+    A "vector" here is defined as a list of two tuples."""
+    def stop(item):
+        return (isinstance(item, list) and len(item) == 2 and isinstance(item[0], tuple) and isinstance(item[1], tuple))
+    for item in nestedlist:
+        if stop(item):
+            if predicate(item):
+                yield item
+        elif isinstance(item, list):
+            yield list(iterfilter_stopatvectors(predicate, item))
+        else:
+            if predicate(item):
+                yield item
 
 def are_points_equal(a, b, epsilon=1e-9):
     """Compares points a and b and returns true if they're equal.
@@ -76,8 +122,10 @@ def are_points_equal(a, b, epsilon=1e-9):
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
 def are_lines_equal(v1, v2, epsilon=1e-9):
-    simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
-    reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
+    #simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
+    #reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
+    reversed_equality = False
+    simple_equality = False
     return (simple_equality or reversed_equality)
 
 def averagepoint_as_ffpoint(point1, point2):
@@ -87,10 +135,17 @@ def averagepoint_as_ffpoint(point1, point2):
     avgpoint = fontforge.point(avgx, avgy, True)
     return avgpoint
 
-def averagepoint_as_tuple(point1, point2):
-    """This function takes two tuples, and returns the average of them"""
+def averagepoint_as_tuple_of_decimals(point1, point2):
+    """This function takes two tuples, and returns the average of them, using Decimal objects instead of floats"""
     avgx = (point1[0] + point2[0]) / decimal.Decimal(2)
     avgy = (point1[1] + point2[1]) / decimal.Decimal(2)
+    avgpoint = (avgx, avgy)
+    return avgpoint
+
+def averagepoint_as_tuple(point1, point2):
+    """This function takes two tuples, and returns the average of them"""
+    avgx = (point1[0] + point2[0]) / 2.0
+    avgy = (point1[1] + point2[1]) / 2.0
     avgpoint = (avgx, avgy)
     return avgpoint
 
@@ -112,3 +167,8 @@ def further(point1,point2,point3):
     else:
         return point3
 
+class AttrDict(dict):
+    "A dict whose keys can be accessed as if they were attributes"
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self # See http://stackoverflow.com/a/14620633/2314532
