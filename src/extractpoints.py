@@ -192,12 +192,13 @@ def closesort3(point, points, epsilon=0.01):
     distances_with_points.sort()
     if distances_with_points[0][0] < epsilon:
         # The target point was in the list; skip it
+        print "Found myself in closesort3"
         del distances_with_points[0]
-    return distances_with_points
+    return [point for distance, point in distances_with_points]
 
 def twoclosestpoints(point, points, epsilon=0.01):
-    distances_with_points = closesort3(point, points, epsilon)
-    return [point for distance, point in distances_with_points[:2]]
+    closepoints = closesort3(point, points, epsilon)
+    return closepoints[:2]
 
 def closestpoint(point, points, epsilon=0.01):
     twopoints = twoclosestpoints(point, points, epsilon)
@@ -219,6 +220,20 @@ def closestpoint(point,points):
         i=i+1
     return (closest, closestidx)
 """
+
+def closestpoint_in_same_direction(curpoint, oldpoint, points, epsilon=0.01):
+    # Last line segment was oldpoint->curpoint. Find next point in general direction
+    for candidate in closesort3(curpoint, points):
+        if are_points_equal(candidate, oldpoint, epsilon):
+            # Don't retrace our steps!
+            continue
+        # Keep going until we find one in the right direction
+        if similar_direction(oldpoint, curpoint, candidate):
+            return candidate
+        else:
+            continue
+    # If we reach here, there were no more points in the right direction
+    return None
 
 def pointscloserthan(point,points,radius):
     closelist=[]
@@ -432,18 +447,28 @@ def saferemove(item, list):
     except ValueError:
         pass
 
-def calculate_midlines(midpoints, endpoints):
+def calculate_midlines(midpoints, endpoints, bounding_polygon):
     # Algorithm: start at endpoints. Draw midlines as long as there's an obvious
     # direction to take. When there's no longer an obvious direction, give up
     # and print a message. (Eventually we'll improve this beyond just "print a message".
     unused_points = midpoints[:]
     for start_point in endpoints:
-        saferemove(start_point, unused_points)
-        next_point = closestpoint(start_point, unused_points)
+        cur_point = start_point
+        saferemove(cur_point, unused_points)
+        next_point = closestpoint(cur_point, unused_points)
+        if next_point is None or not is_within([cur_point, next_point], bounding_polygon):
+            # We've exhausted what this start point can do for us
+            continue
+        yield cur_point, next_point
         while next_point is not None:
-            saferemove(next_point, unused_points)
-            yield start_point, next_point
-            next_point = closestpoint(next_point, unused_points)
+            cur_point = next_point
+            next_point = closestpoint_in_same_direction(cur_point, next_point, unused_points)
+            if next_point is not None and is_within([cur_point, next_point], bounding_polygon):
+                saferemove(next_point, unused_points)
+                yield cur_point, next_point
+            else:
+                # Stop this direction and try the next start_point
+                break
         if len(unused_points) == 0 or next_point is None:
             break
     # This is the simple "keep going no matter what" algorithm, and it's wrong. But it's good enough to start from.
@@ -505,6 +530,7 @@ def extraction_demo(fname,letter):
                 m = averagepoint_as_tuple(line[0], line[1])
                 #draw_fat_point(args.screen, m, args.em, args.zoom, red)
             holes = map(any_to_closedpolyline, [child['line'] for child in children])
+            bounding_polygon = any_to_polygon(outside_polyline, holes)
             for hole in holes:
                 for line in pairwise(hole):
                     m = averagepoint_as_tuple(line[0], line[1])
@@ -531,21 +557,6 @@ def extraction_demo(fname,letter):
             def is_endpoint(point, neighborlist):
                 if len(neighborlist) == 1:
                     return True
-                try:
-                    #debug('Point: {}', point)
-                    x, y = point
-                    x = float(x)
-                    y = float(y)
-                    if abs(x-1093) < 10 and abs(y-(-142)) < 10:
-                        debug('Point: {}', point)
-                        debug('Neighbors: {}', neighborlist)
-                except:
-                    pass
-                #draw_fat_point(screen, point, args.em, args.zoom, green)
-                for n in neighborlist:
-                    #debug('Neighbor: {}', n)
-                    #draw_fat_point(screen, n, args.em, args.zoom, blue)
-                    pass
                 return all(similar_direction(point, a, b, 60) for a, b in pairwise(neighborlist))
             endpoints = [point for (point, neighbors) in all_neighbors.items() if is_endpoint(point, neighbors)]
             for p in endpoints:
@@ -556,7 +567,8 @@ def extraction_demo(fname,letter):
             #print endpoints
 
             # Calculate the midlines somehow, then append them
-            midlines = vectorpairs_to_pointlist(calculate_midlines(midpoints, endpoints))
+            midlines = vectorpairs_to_pointlist(calculate_midlines(midpoints, endpoints, bounding_polygon))
+            print "Calculated these midlines:"
             for m in midlines:
                 print m
             allmidlines.append(midlines)
@@ -568,11 +580,6 @@ def extraction_demo(fname,letter):
     draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress(args.em, args.zoom)
     return points
-    # Note that there may be several off-curve points in a sequence, as with
-    # the U+1015 example I chose here. The FontForge Python documentation at
-    # one point talks about "the TrueType idiom where an on-curve point mid-way
-    # between its control points may be omitted, leading to a run of off-curve
-    # points (with implied but unspecified on-curve points between them)."
 
 def make_triangles(polygon_data, holes=None):
     """This function takes a dictionary, and an optional holes parameter
