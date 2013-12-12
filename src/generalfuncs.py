@@ -4,6 +4,7 @@ Functions that are relatively self-contained, and which do math or iterator
 operations (like averagepoint or pairwise) go in this library.
 """
 import itertools
+import functools
 import fontforge
 import decimal
 
@@ -50,6 +51,14 @@ def comp(f):
     def inner(*args, **kwargs):
         return not f(*args, **kwargs)
     return inner
+
+def itermap(f, nestedlist):
+    try:
+        iterable = iter(nestedlist)
+    except TypeError:
+        return f(nestedlist)
+    else:
+        return map(functools.partial(itermap, f), iterable)
 
 def are_points_equal(a, b, epsilon=1e-9):
     """Compares points a and b and returns true if they're equal.
