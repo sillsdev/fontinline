@@ -4,7 +4,7 @@ import pygame
 import itertools
 import decimal
 import time
-from pygame.locals import QUIT, KEYDOWN
+from pygame.locals import QUIT, KEYDOWN, MOUSEBUTTONDOWN
 from pygame.gfxdraw import trigon, line, pixel, filled_circle
 from generalfuncs import pairwise
 
@@ -19,7 +19,7 @@ def setup_screen():
     pygame.display.set_caption('Triangulation of glyph (name goes here)')
     return screen
 
-def wait_for_keypress():
+def wait_for_keypress(emsize=1024, zoom=1.0):
     done = False
     while not done:
         e = pygame.event.wait()
@@ -29,6 +29,15 @@ def wait_for_keypress():
         elif (e.type == KEYDOWN):
             done = True
             break
+        elif (e.type == MOUSEBUTTONDOWN):
+            x, y = e.pos
+            # Reconstruct glyph coords from screen coords
+            x = float(x) / zoom
+            y = emsize-(float(y) / zoom)
+            print (x, y)
+            import sys
+            sys.stdout.flush()
+            continue
 
 def flip_polyline(polylinelist, emsize):
     """This function takes a list of lists of tuples (the list of polylines), and inverts the y coordinate of each point

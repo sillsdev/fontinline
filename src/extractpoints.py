@@ -29,10 +29,11 @@ from visualization import (
     draw_fat_point,
 )
 from generalfuncs import (
-    pairwise, vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
+    pairwise, by_threes,
+    vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuple_of_decimals,
     comp, itermap, iterfilter, iterfilter_stopatvectors, AttrDict,
-    closer, closerish, further, angle, similar_direction,
+    closer, closerish, further, angle, similar_direction, shallow_angle,
 )
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
@@ -198,6 +199,8 @@ def closestpoint(point,points):
 def pointscloserthan(point,points,radius):
     closelist=[]
     for i in points:
+        if are_points_equal(i, point):
+            continue # Don't put points in their own neighbor list!
         if vectorlengthastuple(i,point)<=radius:
             closelist.append(i)
     return closelist
@@ -315,26 +318,50 @@ def filtertriangles(triangles, outlines):
 #This section is for functions that actually do things beyond calculations and converting between data types
 #================
 
-def extractvectors(points,length=None):
-    """Note: points argument should be a list (or generator) of FF points."""
+def extractvectors(points, minlength=None):
+    """Note: points argument should be a list (or generator) of FF points.
+    minlength argument is minimum length that each subdivision should be. If
+    not specified, default will be to not subdivide straight lines, and to
+    subdivide Bezier curves until the angle change of each segment is less
+    than N degrees, where N is currently 3 but might change in the future."""
     points = list(points)
     for candidate in extractbeziers(points):
-        lineorbezierlength=float(vectorlength(candidate[-1],candidate[0]))
-        if length:
-            subdivision=int(math.floor(lineorbezierlength/length))
-            subdivision=max(subdivision,1)
-        else:
-            subdivision = 1
         if len(candidate) == 2:
             # It's a vector
-            #subdivided=list(subdivideline(candidate,subdivision))
-            subdivided=list(subdivideline(candidate,1))
+            if minlength is None:
+                subdivision = 1
+            else:
+                segmentlength = float(vectorlength(candidate[-1],candidate[0]))
+                subdivision=int(math.floor(segmentlength / minlength))
+                subdivision=max(subdivision,1) # Should be at least 1
+            subdivided=list(subdivideline(candidate,subdivision))
+            #subdivided=list(subdivideline(candidate,1))
         else:
             # It's a Bezier curve
+            if minlength is None:
+                subdivision = find_shallow_subdivision(candidate)
+                #subdivision = 1
+            else:
+                segmentlength = float(vectorlength(candidate[-1],candidate[0]))
+                subdivision=int(math.floor(segmentlength / minlength))
+                subdivision=max(subdivision,1) # Should be at least 1
             subdivided=list(subdividebezier(candidate,subdivision))
         for v in pairwise(subdivided):
-            print v
             yield v
+
+def find_shallow_subdivision(bezier, tolerance=3):
+    # Subdivide a Bezier curve into enough segments (min 3, max 25) to form
+    # angles of less than 5 degrees.
+    for n in range(3, 26, 2):
+        subdivided = list(subdividebezier(bezier, n))
+        similar = all(shallow_angle(a,b,c, tolerance) for a, b, c in by_threes(subdivided))
+        if similar:
+            #print "{} was enough".format(n)
+            break
+        else:
+            #print "{} was not enough".format(n)
+            continue
+    return n
 
 def calculate_width(polydata, fudgefactor=0.05):
     polyline = polydata['line']
@@ -426,10 +453,13 @@ def extraction_demo(fname,letter):
             triangles_set = triangles2vectorset(triangles)
             midpoints_set = triangles_set - polylines_set
             midpoints = [averagepoint_as_tuple_of_decimals(v[0], v[1]) for v in midpoints_set]
+            for m in midpoints:
+                n = [float(val) for val in m]
+                draw_fat_point(screen, m, args.em, args.zoom, blue)
             allmidpoints.extend(midpoints)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
-            neighbor_distance = width * 0.7
+            neighbor_distance = width * 1.5
             all_neighbors = find_neighbors(midpoints, neighbor_distance)
 
             # Step 2: Any points with all neighbors in the "same direction" are endpoints
@@ -437,13 +467,32 @@ def extraction_demo(fname,letter):
             # to contain all the neighbors before they count as "same direction"?
             # 60 degrees? 120 degrees? After all, several of its neighbors may
             # be along a curve...
-            def is_endpoint(neighborlist):
-                return len(neighborlist) == 1
-            endpoints = [point for (point, neighbors) in all_neighbors.items() if len(neighbors) == 1]
+            def is_endpoint(point, neighborlist):
+                if len(neighborlist) == 1:
+                    return True
+                try:
+                    #debug('Point: {}', point)
+                    x, y = point
+                    x = float(x)
+                    y = float(y)
+                    if abs(x-1093) < 10 and abs(y-(-142)) < 10:
+                        debug('Point: {}', point)
+                        debug('Neighbors: {}', neighborlist)
+                except:
+                    pass
+                #draw_fat_point(screen, point, args.em, args.zoom, green)
+                for n in neighborlist:
+                    #debug('Neighbor: {}', n)
+                    #draw_fat_point(screen, n, args.em, args.zoom, blue)
+                    pass
+                return all(similar_direction(point, a, b, 60) for a, b in pairwise(neighborlist))
+            endpoints = [point for (point, neighbors) in all_neighbors.items() if is_endpoint(point, neighbors)]
+            for p in endpoints:
+                debug('Endpoint: {}', p)
+                draw_fat_point(screen, p, args.em, args.zoom, green)
+                pass
             #print "Identified endpoints:"
             #print endpoints
-            for p in endpoints:
-                draw_fat_point(screen, p, args.em, args.zoom, green)
 
             # Calculate the midlines somehow, then append them
             midlines = []  # Replace this with actual calculation
@@ -454,7 +503,7 @@ def extraction_demo(fname,letter):
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
     draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
-    wait_for_keypress()
+    wait_for_keypress(args.em, args.zoom)
     return points
     # Note that there may be several off-curve points in a sequence, as with
     # the U+1015 example I chose here. The FontForge Python documentation at
@@ -552,6 +601,7 @@ def new_extraction_method(fontfilename, lettername):
         outline.polyline = any_to_polyline(outline.complete_contour)
         outline.linestring = any_to_linestring(outline.complete_contour)
         data.outlines.append(outline)
+
         #debug(list(outline.linestring.coords))
 
 def parse_args():

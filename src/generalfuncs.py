@@ -17,6 +17,13 @@ def pairwise(source):
     for a, b in itertools.izip(source, source2):
         yield (a, b)
 
+def by_threes(source):
+    """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b,c), (b,c,d), (c,d,e)..."""
+    source2 = itertools.islice(source, 1, None)
+    source3 = itertools.islice(source, 2, None)
+    for a, b, c in itertools.izip(source, source2, source3):
+        yield (a, b, c)
+
 def vectorlengthastuple(point1, point2):
     """This function takes two tuple-style points, and returns the distance between them"""
     xdiff=float(point1[0]-point2[0])
@@ -35,11 +42,13 @@ def vectorlength(point1, point2):
 
 def ux(p):
     """Extract the x value of a point in any format"""
+    if type(p) is float or type(p) is decimal.Decimal:
+        raise TypeError, "Should have gotten a point; got {} instead".format(p)
     try:
         result = p.x
     except AttributeError:
         result = p[0]
-    return result
+    return float(result)
 
 def uy(p):
     """Extract the y value of a point in any format"""
@@ -47,7 +56,7 @@ def uy(p):
         result = p.y
     except AttributeError:
         result = p[1]
-    return result
+    return float(result)
 
 def angle(point1, point2):
     """Calculate the angle (in degrees) of the line between point1 and point2.
@@ -67,6 +76,17 @@ def similar_direction(point1, point2, point3, tolerance=30):
     diff = abs(angle_to_p2 - angle_to_p3)
     while diff > 180:
         diff -= 360
+    return abs(diff) < tolerance
+
+def shallow_angle(a, b, c, tolerance=30):
+    """Check whether the lines AB and BC form a shallow enough angle.
+    Note that this is different from similar_direction, which checks AB and AC."""
+    angle_ab = angle(a, b)
+    angle_bc = angle(b, c)
+    diff = abs(angle_ab - angle_bc)
+    while diff > 180:
+        diff -= 360
+    #print "Angle", abs(diff), "and tolerance", tolerance, "=", (abs(diff) < tolerance)
     return abs(diff) < tolerance
 
 def iterfilter_stopatvectors(predicate, nestedlist):
@@ -112,7 +132,7 @@ def iterfunc(func, startvalue):
     result using func and function(element)."""
     def identity(anything):
         return anything
-    
+
     def alwaysTrue(*args, **kwargs):
         return True
 
@@ -129,10 +149,10 @@ def iterfunc(func, startvalue):
             else:
                 result = func(result, newfunction(iterable, pred, function))
         return result
-    
+
     def new2(nestediterable, predicate):
         return newfunction(nestediterable, pred = predicate)
-    
+
     def new3(nestediterable, usedfunction):
         return newfunction(nestediterable, function = usedfunction)
     return newfunction, new2, new3
@@ -180,7 +200,7 @@ def test(a, b, pred):
         return a
     else:
         return b
-    
+
 def closertest(point, point2, point3):
     return vectorlengthastuple(point1, point2)<vectorlengthastuple(point1, point3)
 
