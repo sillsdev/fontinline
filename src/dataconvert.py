@@ -99,8 +99,10 @@ def triangles2vectorset(triangles):
     return result
 
 def vectorpairs_to_pointlist(pairs):
-    """This function takes a list of pairs of points and turns it into a single list of points.
-    This function needs to be updated when we subdivide bezier curves"""
+    """This function takes a list of pairs of points and turns it into a
+    list of lists of points. Each list will be a slice of the points such
+    that none of the pairs of consecutive points were not in pairs. The
+    number of lists should be equal to the number of pairs removed."""
     pairs = list(pairs)
     if not pairs:
         return []
