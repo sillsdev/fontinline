@@ -415,6 +415,7 @@ def extraction_demo(fname,letter):
     layer = glyph.foreground
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     polylines = []
+    polylines_to_draw = []
     polylines_set = set()
     triangles_set = set()
     alltriangles = []
@@ -447,7 +448,7 @@ def extraction_demo(fname,letter):
 
             real_polyline = polydata['line']
             real_polygon = polydata['poly']
-            polylines.append(any_to_linestring(real_polyline))
+            polylines_to_draw.append(any_to_linestring(real_polyline))
             children = polydata.get('immediatechildren', [])
             triangles = make_triangles(polydata, children)
             alltriangles.extend(triangles)
@@ -463,6 +464,7 @@ def extraction_demo(fname,letter):
                 for line in pairwise(hole):
                     m = averagepoint_as_tuple(line[0], line[1])
                     #draw_fat_point(args.screen, m, args.em, args.zoom, red)
+                polylines_to_draw.append(hole)
             outlines_to_filter = [outside_polyline] + holes
             real_trianglelines = filtertriangles(trianglelines, outlines_to_filter)
             polylines_set = closedpolyline2vectorset(polydata['line'])
@@ -516,7 +518,7 @@ def extraction_demo(fname,letter):
             midlines = []  # Replace this with actual calculation
             allmidlines.append(midlines)
 
-    draw_all(screen, polylines, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
+    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
