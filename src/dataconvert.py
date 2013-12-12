@@ -106,19 +106,7 @@ def vectorpairs_to_pointlist(pairs):
     pairs = list(pairs)
     if not pairs:
         return []
-    i=0
-    pointlist=[]
-    while i<len(pairs):
-        idx=0
-        pointlist.append([])
-        pointlist[0].append(pairs[i][0])
-        boolean=True
-        while boolean:
-            pointlist[idx].append(pairs[i][1])
-            if i!=len(pairs)-1:
-                boolean = boolean or pairs[i][1] == pairs[i+1][0]
-            i=i+1
-    return pointlist
+    return [pair[0] for pair in pairs] + [pairs[-1][-1]]
 
 def vectorpairs_to_linestring(pairs):
     """This function takes a list of pairs of points and turns it into a single LineString."""

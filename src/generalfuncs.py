@@ -9,6 +9,7 @@ import fontforge
 import math
 import decimal
 import math
+import operator
 
 def pairwise(source):
     """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
@@ -67,30 +68,6 @@ def similar_direction(point1, point2, point3, tolerance=30):
     while diff > 180:
         diff -= 360
     return abs(diff) < tolerance
-
-def comp(f):
-    """This is basically Clojure's (complement) function."""
-    def inner(*args, **kwargs):
-        return not f(*args, **kwargs)
-    return inner
-
-def itermap(f, nestedlist):
-    try:
-        iterable = iter(nestedlist)
-    except TypeError:
-        return f(nestedlist)
-    else:
-        return map(functools.partial(itermap, f), iterable)
-
-def iterfilter(predicate, nestedlist):
-    for item in nestedlist:
-        try:
-            iterable = iter(item)
-        except TypeError:
-            if predicate(item):
-                yield item
-        else:
-            yield list(iterfilter(predicate, iterable))
 
 def iterfilter_stopatvectors(predicate, nestedlist):
     """Special version of iterfilter that will stop at vectors.
@@ -160,6 +137,16 @@ def iterfunc(func, startvalue):
         return newfunction(nestediterable, function = usedfunction)
     return newfunction, new2, new3
 
+iterfilter = iterfunc(appended, [])[1]
+itermap = iterfunc(appended, [])[2]
+
+def compose(func1, func2):
+    def newfunction(*args, **kwargs):
+        return func1(func2(*args, **kwargs))
+    return newfunction
+
+comp = functools.partial(compose, operator.not_)
+
 def are_lines_equal(v1, v2, epsilon=1e-9):
     #simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
     #reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
@@ -188,23 +175,23 @@ def averagepoint_as_tuple(point1, point2):
     avgpoint = (avgx, avgy)
     return avgpoint
 
-def closer(point1,point2,point3):
-    if vectorlengthastuple(point1,point2)<vectorlengthastuple(point1,point3):
-        return point2
+def test(a, b, pred):
+    if pred:
+        return a
     else:
-        return point3
+        return b
+    
+def closertest(point, point2, point3):
+    return vectorlengthastuple(point1, point2)<vectorlengthastuple(point1, point3)
+
+def closer(point1,point2,point3):
+    return test(point2, point3, closertest(point1, point2, point3))
 
 def closerish(point1,point2,point3,fudge):
-    if vectorlengthastuple(point1,point2)<fudge*vectorlengthastuple(point1,point3):
-        return point2
-    else:
-        return point3
+    return test(point2, point3, vectorlengthastuple(point1, point2)<fudge*vectorlengthastuple(point1, point3))
 
 def further(point1,point2,point3):
-    if vectorlengthastuple(point1,point2)>vectorlengthastuple(point1,point3):
-        return point2
-    else:
-        return point3
+    return test(point2, point3, comp(closertest)(point1, point2, point3))
 
 class AttrDict(dict):
     "A dict whose keys can be accessed as if they were attributes"
