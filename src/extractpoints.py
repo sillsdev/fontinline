@@ -566,7 +566,7 @@ def extraction_demo(fname,letter):
             #print "Identified endpoints:"
             #print endpoints
 
-            # Calculate the midlines somehow, then append them
+            # Calculate the midlines, then append them
             midlines = vectorpairs_to_pointlist(calculate_midlines(midpoints, endpoints, bounding_polygon))
             print "Calculated these midlines:"
             for m in midlines:
