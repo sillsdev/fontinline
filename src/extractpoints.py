@@ -539,8 +539,6 @@ def calculate_midlines(midpoints, bounding_polygon):
         curpt = first_not_in(singles, finished_points)
         if curpt is None:
             break
-        if curpt == (760.5, 426.0):
-            exit_now = True
         nextpt = next_point(curpt)
         if nextpt in finished_points:
             break
