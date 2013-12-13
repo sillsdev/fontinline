@@ -429,11 +429,12 @@ def recalculate_polys(polydata):
         width = polydata['width']
         holes = polydata.get('immediatechildren', [])
         for hole_data in holes:
-            hole_contour = hole_data['contour']
+            hole_contour = list(extrapolate_midpoints(list(hole_data['contour'])))
             hole_vectors = extractvectors(hole_contour, width)
             hole_data['line'] = vectorpairs_to_pointlist(hole_vectors)
             hole_data['poly'] = any_to_polygon(hole_data['line'], [])
-        real_vectors = extractvectors(polydata['contour'], width)
+        real_contour = list(extrapolate_midpoints(list(polydata['contour'])))
+        real_vectors = extractvectors(real_contour, width)
         real_hole_contours = [data['contour'] for data in holes]
         real_polyline = vectorpairs_to_pointlist(real_vectors)
 
@@ -557,7 +558,6 @@ def extraction_demo(fname,letter):
                     for m in t:
                         debug(m)
                         draw_fat_point(screen, m, args.em, args.zoom, green)
-                n = [float(val) for val in m]
             allmidpoints.extend(midpoints)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
