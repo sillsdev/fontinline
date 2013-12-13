@@ -29,9 +29,9 @@ from visualization import (
 from generalfuncs import (
     pairwise, by_threes,
     vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
-    averagepoint_as_ffpoint, averagepoint_as_tuple,
-    comp, itermap, iterfilter, iterfilter_stopatvectors, AttrDict,
-    closer, closerish, further, angle, similar_direction, shallow_angle,
+    averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
+    comp, itermap, iterfilter, iterfilter_stopatvectors, itermap_stopatvectors,
+    AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
 )
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
@@ -452,6 +452,7 @@ def calculate_midlines(midpoints, endpoints, bounding_polygon):
     # direction to take. When there's no longer an obvious direction, give up
     # and print a message. (Eventually we'll improve this beyond just "print a message".
     unused_points = midpoints[:]
+    """ Commenting this out for now
     for start_point in endpoints:
         cur_point = start_point
         saferemove(cur_point, unused_points)
@@ -471,7 +472,10 @@ def calculate_midlines(midpoints, endpoints, bounding_polygon):
                 break
         if len(unused_points) == 0 or next_point is None:
             break
-    # This is the simple "keep going no matter what" algorithm, and it's wrong. But it's good enough to start from.
+    """
+    if False:
+        yield None  # Make the Python interpreter turn this into a generator
+    debug("Starting with endpoints: {}", endpoints)
 
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
@@ -537,15 +541,27 @@ def extraction_demo(fname,letter):
                     #draw_fat_point(args.screen, m, args.em, args.zoom, red)
                 polylines_to_draw.append(hole)
             outlines_to_filter = [outside_polyline] + holes
-            real_trianglelines = filtertriangles(trianglelines, outlines_to_filter)
-            midpoints = [averagepoint_as_tuple(v[0], v[1]) for t in real_trianglelines for v in t]
+            real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
+            debug('Real triangle lines: {}', real_trianglelines[:3])
+            midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
+            # Structure of midpoints now:
+            # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
+            # And m1, m2, m3 are (x,y)
+            # Basically, each triangle's vectors have been changed to midpoints,
+            # but the structure still remains
             print len(midpoints), 'midpoints found'
-            for m in midpoints:
+            debug(midpoints)
+            for t in midpoints:
+                if len(t) == 1:
+                    debug("Identified endpoint:")
+                    for m in t:
+                        debug(m)
+                        draw_fat_point(screen, m, args.em, args.zoom, green)
                 n = [float(val) for val in m]
-                #draw_fat_point(screen, m, args.em, args.zoom, blue)
             allmidpoints.extend(midpoints)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
+            """ Comment out this block -- we're redoing it with triangle-based algorithm
             neighbor_distance = width * 1.5
             all_neighbors = find_neighbors(midpoints, neighbor_distance)
 
@@ -572,12 +588,14 @@ def extraction_demo(fname,letter):
             for m in midlines:
                 print m
             allmidlines.append(midlines)
+            """
+            #break  # Uncomment this to draw only the first "world"
 
     draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    #draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress(args.em, args.zoom)
     return points
 
