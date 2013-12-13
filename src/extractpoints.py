@@ -529,19 +529,30 @@ def calculate_midlines(midpoints, bounding_polygon):
             return None
         return get_other_point(next_tri, cur_point)
 
-    while not done():
+    def arity(point):
+        """How many connections is this point part of?"""
+        t = triangles[point]
+        return max(*map(len, t))
+
+    exit_now = False
+    while not done() and not exit_now:
         curpt = first_not_in(singles, finished_points)
-        debug('Current point: {}', curpt)
         if curpt is None:
             break
+        if curpt == (760.5, 426.0):
+            exit_now = True
         nextpt = next_point(curpt)
-        debug('Next point: {}', nextpt)
+        if nextpt in finished_points:
+            break
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
-            prevpt = curpt  # Needed? FIXME: Remove if not needed
+            finished_points.append(curpt) # TODO: Check arity of curpt first: if 3, not yet finished... I suppose
+            #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
             nextpt = next_point(curpt)
-            debug('Next point: {}', nextpt)
+            if nextpt in finished_points:
+                exit_now = True
+                break
     return drawn_lines
 
 def extraction_demo(fname,letter):
@@ -626,6 +637,8 @@ def extraction_demo(fname,letter):
                         #debug(m)
                         draw_fat_point(screen, m, args.em, args.zoom, green)
             allmidpoints.extend(midpoints)
+            allmidlines.append(vectorpairs_to_pointlist(midlines))
+            debug('All midlines so far: {}', allmidlines)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
             """ Comment out this block -- we're redoing it with triangle-based algorithm
@@ -662,7 +675,7 @@ def extraction_demo(fname,letter):
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    #draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress(args.em, args.zoom)
     return points
 

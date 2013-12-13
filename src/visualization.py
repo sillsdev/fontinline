@@ -115,11 +115,11 @@ def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylin
 def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinecolor=green, midpointcolor=red):
     """This function takes the list of polylines and midpoints, and draws them in pygame."""
     global args
-    for m in midpoints:
-        x = int(m[0] * zoom)
-        y = int((emsize-m[1]) * zoom)
+    #for m in midpoints:
+        #x = int(m[0] * zoom)
+        #y = int((emsize-m[1]) * zoom)
         #print (x,y)
-        pixel(screen, x, y, midpointcolor)
+        #pixel(screen, x, y, midpointcolor)
 
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
