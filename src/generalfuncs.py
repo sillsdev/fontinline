@@ -100,6 +100,19 @@ def iterfilter_stopatvectors(predicate, nestedlist):
             if predicate(item):
                 yield item
 
+def itermap_stopatvectors(f, nestedlist):
+    """Special version of iterfilter that will stop at vectors.
+    A "vector" here is defined as a list of two tuples."""
+    def stop(item):
+        return (isinstance(item, list) and len(item) == 2 and isinstance(item[0], tuple) and isinstance(item[1], tuple))
+    for item in nestedlist:
+        if stop(item):
+            yield f(item)
+        elif isinstance(item, list):
+            yield list(itermap_stopatvectors(f, item))
+        else:
+            yield f(item)
+
 def are_points_equal(a, b, epsilon=1e-9):
     """Compares points a and b and returns true if they're equal.
 
@@ -192,6 +205,10 @@ def averagepoint_as_tuple(point1, point2):
     avgy = (point1[1] + point2[1]) / 2.0
     avgpoint = (avgx, avgy)
     return avgpoint
+
+def averagepoint_as_tuplevector(v):
+    """This function takes a vector of two tuples, and returns the midpoint of the vector."""
+    return averagepoint_as_tuple(v[0], v[1])
 
 def test(pred, a, b):
     if pred:
