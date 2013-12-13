@@ -120,6 +120,11 @@ def appended(elementlist, element):
     newlist.append(element)
     return newlist
 
+def k(anything):
+    def f(blah):
+        return anything
+    return f
+
 def iterfunc(func, startvalue):
     """This function takes a function and a start value and
     returns a function that will go through all elements of
@@ -129,12 +134,16 @@ def iterfunc(func, startvalue):
     def identity(anything):
         return anything
 
-    def alwaysTrue(*args, **kwargs):
-        return True
+    alwaysTrue = k(True)
+    alwaysFalse = k(False)
 
-    def newfunction(nestediterable, pred = alwaysTrue, function = identity):
+    def newfunction(nestediterable, pred = alwaysTrue, function = identity, stop = alwaysFalse):
         result=startvalue
         for i in nestediterable:
+            if stop(i):
+                if pred(i):
+                    result = func(result, function(i))
+                continue
             try:
                 iterable = iter(i)
             except TypeError:
@@ -146,15 +155,15 @@ def iterfunc(func, startvalue):
                 result = func(result, newfunction(iterable, pred, function))
         return result
 
-    def new2(nestediterable, predicate):
-        return newfunction(nestediterable, pred = predicate)
+    def new2(nestediterable, predicate, stop = alwaysFalse):
+        return newfunction(nestediterable, pred = predicate, stop = stop)
 
-    def new3(nestediterable, usedfunction):
-        return newfunction(nestediterable, function = usedfunction)
+    def new3(nestediterable, usedfunction, stop = alwaysFalse):
+        return newfunction(nestediterable, function = usedfunction, stop = stop)
     return newfunction, new2, new3
 
-iterfilter = iterfunc(appended, [])[1]
-itermap = iterfunc(appended, [])[2]
+iterany = iterfunc(operator.or_, True)
+iterfiltermap, iterfilter, itermap = iterfunc(appended, [])
 
 def compose(func1, func2):
     def newfunction(*args, **kwargs):
@@ -184,7 +193,7 @@ def averagepoint_as_tuple(point1, point2):
     avgpoint = (avgx, avgy)
     return avgpoint
 
-def test(a, b, pred):
+def test(pred, a, b):
     if pred:
         return a
     else:
@@ -194,13 +203,13 @@ def closertest(point, point2, point3):
     return vectorlengthastuple(point1, point2)<vectorlengthastuple(point1, point3)
 
 def closer(point1,point2,point3):
-    return test(point2, point3, closertest(point1, point2, point3))
+    return test(closertest(point1, point2, point3), point2, point3)
 
 def closerish(point1,point2,point3,fudge):
-    return test(point2, point3, vectorlengthastuple(point1, point2)<fudge*vectorlengthastuple(point1, point3))
+    return test(vectorlengthastuple(point1, point2)<fudge*vectorlengthastuple(point1, point3), point2, point3)
 
 def further(point1,point2,point3):
-    return test(point2, point3, comp(closertest)(point1, point2, point3))
+    return test(comp(closertest)(point1, point2, point3), point2, point3)
 
 class AttrDict(dict):
     "A dict whose keys can be accessed as if they were attributes"
