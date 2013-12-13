@@ -476,15 +476,73 @@ def calculate_midlines(midpoints, bounding_polygon):
 
     drawn_lines = []  # Will be a list of vectors (pairs of points)
     connected_points = collections.defaultdict(list)  # Keys are midpoints
+    finished_points = []  # Will we use this?
 
     # As we draw each line segment between two midpoints, we will:
     # 1) Add the segment to the drawn_lines list (appending it)
     # 2) connected_points[a].append(b)
     #    connected_points[b].append(a)
+    def record_drawn_line(p1, p2):
+        # Record a drawn line between p1 and p2
+        drawn_lines.append([p1, p2])
+        connected_points[p1].append(p2)
+        connected_points[p2].append(p1)
     # NOTE: It's possible that we'll discover we want some other data structure
     # for our line segments. Find out.
-    if False:
-        yield None  # Make the Python interpreter turn this into a generator
+
+    def done():
+        numpoints = len(singles)+len(doubles)+len(triples)
+        return len(connected_points) == numpoints
+
+    def first_not_in(a, b, default=None):
+        """Returns the first item from collection a not found in collection b.
+        Collection a is a collection of collections (like "singles" and "triples" above),
+        and b must support "if item in b" lookup."""
+        for coll in a:
+            for item in coll:
+                if item in b:
+                    continue
+                return item
+        return default
+
+    def get_other_point(coll, p, default=None):
+        """Given a collection of points, return the first point that is not p."""
+        for candidate in coll:
+            if are_points_equal(candidate, p):
+                continue
+            return candidate
+        return None
+
+    def next_point(cur_point):
+        debug('next_point({}) called with connected points: {}', cur_point, connected_points)
+        old_point = get_other_point(connected_points[cur_point], cur_point)
+        # All midpoints are part of two triangles. If only one of those has
+        # two valid sides (two remaining points), draw to it. If there are
+        # two with two valid sides, pick one arbitrarily.
+        tris = filter(lambda coll: len(coll) == 2, triangles[cur_point])
+        if len(tris) == 2:
+            next_tri = (tris[1] if old_point in tris[0] else tris[0])
+        elif len(tris) == 1:
+            next_tri = tris[0]
+        else:
+            # No next point to find
+            return None
+        return get_other_point(next_tri, cur_point)
+
+    while not done():
+        curpt = first_not_in(singles, finished_points)
+        debug('Current point: {}', curpt)
+        if curpt is None:
+            break
+        nextpt = next_point(curpt)
+        debug('Next point: {}', nextpt)
+        while nextpt is not None:
+            record_drawn_line(curpt, nextpt)
+            prevpt = curpt  # Needed? FIXME: Remove if not needed
+            curpt = nextpt
+            nextpt = next_point(curpt)
+            debug('Next point: {}', nextpt)
+    return drawn_lines
 
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
@@ -553,6 +611,7 @@ def extraction_demo(fname,letter):
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
             midlines = list(calculate_midlines(midpoints, bounding_polygon))
+            debug('Calculated midlines: {}', midlines)
             # Structure of midpoints now:
             # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
             # And m1, m2, m3 are (x,y)
