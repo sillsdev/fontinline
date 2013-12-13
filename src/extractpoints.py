@@ -474,17 +474,18 @@ def calculate_midlines(midpoints, bounding_polygon):
     debug('{} tripoints found', len(triples))
     debug('{} ', triples)
 
-    drawn_lines = []  # Will be a list of vectors (pairs of points)
+    current_line = []  # Will be a list of vectors (pairs of points)
+    drawn_lines = []  # Will be a list of lists of vectors (pairs of points)
     connected_points = collections.defaultdict(list)  # Keys are midpoints
     finished_points = []  # Will we use this?
 
     # As we draw each line segment between two midpoints, we will:
-    # 1) Add the segment to the drawn_lines list (appending it)
+    # 1) Add the segment to the current_line list (appending it)
     # 2) connected_points[a].append(b)
     #    connected_points[b].append(a)
     def record_drawn_line(p1, p2):
         # Record a drawn line between p1 and p2
-        drawn_lines.append([p1, p2])
+        current_line.append([p1, p2])
         connected_points[p1].append(p2)
         connected_points[p2].append(p1)
     # NOTE: It's possible that we'll discover we want some other data structure
@@ -549,8 +550,9 @@ def calculate_midlines(midpoints, bounding_polygon):
             curpt = nextpt
             nextpt = next_point(curpt)
             if nextpt in finished_points:
-                exit_now = True
                 break
+        drawn_lines.append(current_line)
+        current_line = []
     return drawn_lines
 
 def extraction_demo(fname,letter):
@@ -635,7 +637,7 @@ def extraction_demo(fname,letter):
                         #debug(m)
                         draw_fat_point(screen, m, args.em, args.zoom, green)
             allmidpoints.extend(midpoints)
-            allmidlines.append(vectorpairs_to_pointlist(midlines))
+            allmidlines.extend(map(vectorpairs_to_pointlist, midlines))
             debug('All midlines so far: {}', allmidlines)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
@@ -726,7 +728,7 @@ def find_straight_lines(ffcontour):
 def estimate_strokewidth(ffcontour):
     pass
 
-DEBUG=True
+DEBUG=False
 def debug(s, *args, **kwargs):
     if not DEBUG:
         return
