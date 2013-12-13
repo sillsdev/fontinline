@@ -448,35 +448,43 @@ def saferemove(item, list):
     except ValueError:
         pass
 
-def calculate_midlines(midpoints, endpoints, bounding_polygon):
-    # Algorithm: start at endpoints. Draw midlines as long as there's an obvious
-    # direction to take. When there's no longer an obvious direction, give up
-    # and print a message. (Eventually we'll improve this beyond just "print a message".
-    unused_points = midpoints[:]
-    """ Commenting this out for now
-    for start_point in endpoints:
-        cur_point = start_point
-        saferemove(cur_point, unused_points)
-        next_point = closestpoint(cur_point, unused_points)
-        if next_point is None or not is_within([cur_point, next_point], bounding_polygon):
-            # We've exhausted what this start point can do for us
-            continue
-        yield cur_point, next_point
-        while next_point is not None:
-            cur_point = next_point
-            next_point = closestpoint_in_same_direction(cur_point, next_point, unused_points)
-            if next_point is not None and is_within([cur_point, next_point], bounding_polygon):
-                saferemove(next_point, unused_points)
-                yield cur_point, next_point
-            else:
-                # Stop this direction and try the next start_point
-                break
-        if len(unused_points) == 0 or next_point is None:
-            break
-    """
+def calculate_midlines(midpoints, bounding_polygon):
+    triangles = collections.defaultdict(list)  # Keys are midpoints
+    singles = []
+    doubles = []
+    triples = []
+    # Note that "triangles" is a bit of a misnomer, as we have replaced each
+    # side of the triangle with its midpoint -- and then eliminated the lines
+    # that coincide with the outline. Now, if a "triangle" still has three
+    # "sides" (points), it marks an intersection. If it has two sides, it's
+    # the middle of a line (and easy to resolve). If it has one side, it's
+    # an endpoint.
+
+    # Structure of midpoints list:
+    # [t1, t2, t3, ..., tn] where t looks like [m1, m2, m3] (or 2 or 1 points)
+    # and where each m looks like (x,y)
+    for tri in midpoints:
+        for m in tri:
+            triangles[m].append(tri)
+        # Instead of "if len(tri) == 1: singles.append(tri)", etc., we can do:
+        [[], singles, doubles, triples][len(tri)].append(tri)
+    debug('{} endpoints found', len(singles))
+    debug('{} ', singles)
+    debug('{} midpoints found', len(doubles))
+    debug('{} tripoints found', len(triples))
+    debug('{} ', triples)
+
+    drawn_lines = []  # Will be a list of vectors (pairs of points)
+    connected_points = collections.defaultdict(list)  # Keys are midpoints
+
+    # As we draw each line segment between two midpoints, we will:
+    # 1) Add the segment to the drawn_lines list (appending it)
+    # 2) connected_points[a].append(b)
+    #    connected_points[b].append(a)
+    # NOTE: It's possible that we'll discover we want some other data structure
+    # for our line segments. Find out.
     if False:
         yield None  # Make the Python interpreter turn this into a generator
-    debug("Starting with endpoints: {}", endpoints)
 
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
@@ -543,20 +551,20 @@ def extraction_demo(fname,letter):
                 polylines_to_draw.append(hole)
             outlines_to_filter = [outside_polyline] + holes
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
-            debug('Real triangle lines: {}', real_trianglelines[:3])
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
+            midlines = list(calculate_midlines(midpoints, bounding_polygon))
             # Structure of midpoints now:
             # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
             # And m1, m2, m3 are (x,y)
             # Basically, each triangle's vectors have been changed to midpoints,
             # but the structure still remains
-            print len(midpoints), 'midpoints found'
-            debug(midpoints)
+            #print len(midpoints), 'midpoints found'
+            #debug(midpoints)
             for t in midpoints:
                 if len(t) == 1:
-                    debug("Identified endpoint:")
+                    #debug("Identified endpoint:")
                     for m in t:
-                        debug(m)
+                        #debug(m)
                         draw_fat_point(screen, m, args.em, args.zoom, green)
             allmidpoints.extend(midpoints)
 
