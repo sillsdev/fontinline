@@ -553,6 +553,27 @@ def calculate_midlines(midpoints, bounding_polygon):
                 break
         drawn_lines.append(current_line)
         current_line = []
+
+    exit_now = False
+    while not done() and not exit_now:
+        curpt = first_not_in(triples, finished_points)
+        if curpt is None:
+            break
+        nextpt = next_point(curpt)
+        if nextpt in finished_points:
+            finished_points.append(curpt)
+            continue
+        while nextpt is not None:
+            record_drawn_line(curpt, nextpt)
+            finished_points.append(curpt) # TODO: Check arity of curpt first: if 3, not yet finished... I suppose
+            #prevpt = curpt  # Needed? FIXME: Remove if not needed
+            curpt = nextpt
+            nextpt = next_point(curpt)
+            if nextpt in finished_points:
+                break
+        drawn_lines.append(current_line)
+        current_line = []
+
     return drawn_lines
 
 def extraction_demo(fname,letter):
