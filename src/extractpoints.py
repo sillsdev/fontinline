@@ -27,7 +27,7 @@ from visualization import (
     draw_fat_point,
 )
 from generalfuncs import (
-    pairwise, by_threes,
+    pairwise, by_threes, flatten,
     vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, itermap, iterfilter, iterfilter_stopatvectors, itermap_stopatvectors,
@@ -531,9 +531,21 @@ def calculate_midlines(midpoints, bounding_polygon):
         return get_other_point(next_tri, cur_point)
 
     def arity(point):
-        """How many connections is this point part of?"""
+        """How many connections is this point part of? In other words, how
+        many other points are on the triangles this point belongs to?
+        """
         t = triangles[point]
-        return max(*map(len, t))
+        debug('Finding arity of point {}, part of the following triangles: {}', point, t)
+        method1 = max(*map(len, t))  # This isn't quite correct: a point that's part of two triangles should have an arity of 4, not 3.
+        # To get a perfectly accurate count:
+        #   1) Flatten the list of triangles
+        #   2) Filter out the current point
+        #   3) Return the count of the remainder
+        otherpoints = filter(lambda x: x != point, flatten(t))
+        method2 = len(otherpoints)
+        if method1 != method2:
+            debug("Interesting: map(len, t) gave {} arity, but filter(flatten(t)) gave {} arity", method1, method2)
+        return method2
 
     exit_now = False
     while not done() and not exit_now:
@@ -545,6 +557,7 @@ def calculate_midlines(midpoints, bounding_polygon):
             break
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
+            debug(arity(curpt))
             finished_points.append(curpt) # TODO: Check arity of curpt first: if 3, not yet finished... I suppose
             #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
@@ -565,6 +578,7 @@ def calculate_midlines(midpoints, bounding_polygon):
             continue
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
+            debug(arity(curpt))
             finished_points.append(curpt) # TODO: Check arity of curpt first: if 3, not yet finished... I suppose
             #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt

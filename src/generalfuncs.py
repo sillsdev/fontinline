@@ -128,6 +128,22 @@ def are_points_equal(a, b, epsilon=1e-9):
         x2, y2 = b[0], b[1]
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
+def flatten(nestedlist, islist=None):
+    """Flattens a nested list. You can optionally pass in a predicate function
+    that decides if a given item is a list or not; if none is given, the default
+    is to check if the item is an instance of Python's list class."""
+    if islist is None:
+        islist = lambda item: isinstance(item, list)
+    def inner(l):
+        result = []
+        for item in l:
+            if islist(item):
+                result.extend(inner(item))
+            else:
+                result.append(item)
+        return result
+    return inner(nestedlist)
+
 def appended(elementlist, element):
     newlist = elementlist[:]
     newlist.append(element)
