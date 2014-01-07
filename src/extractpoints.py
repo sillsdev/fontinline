@@ -552,13 +552,21 @@ def calculate_midlines(midpoints, bounding_polygon):
         curpt = first_not_in(singles, finished_points)
         if curpt is None:
             break
+        a = arity(curpt)
+        if a > 2:
+            debug('Point {} has arity {}', curpt, a)
+            draw_fat_point(args.screen, curpt, args.em, args.zoom, blue)
         nextpt = next_point(curpt)
         if nextpt in finished_points:
             break
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
-            debug(arity(curpt))
-            finished_points.append(curpt) # TODO: Check arity of curpt first: if 3, not yet finished... I suppose
+            a = arity(curpt)
+            if a > 2:
+                # TODO: Check that all this point's neighbors are finished; iff so, add this point to finished_points
+                finished_points.append(curpt)
+            else:
+                finished_points.append(curpt)
             #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
             nextpt = next_point(curpt)
@@ -572,14 +580,21 @@ def calculate_midlines(midpoints, bounding_polygon):
         curpt = first_not_in(triples, finished_points)
         if curpt is None:
             break
+        a = arity(curpt)
+        if a > 2:
+            debug('Point {} has arity {}', curpt, a)
+            draw_fat_point(args.screen, curpt, args.em, args.zoom, red)
         nextpt = next_point(curpt)
         if nextpt in finished_points:
             finished_points.append(curpt)
             continue
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
-            debug(arity(curpt))
-            finished_points.append(curpt) # TODO: Check arity of curpt first: if 3, not yet finished... I suppose
+            if a > 2:
+                # TODO: Check that all this point's neighbors are finished; iff so, add this point to finished_points
+                finished_points.append(curpt)
+            else:
+                finished_points.append(curpt)
             #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
             nextpt = next_point(curpt)
