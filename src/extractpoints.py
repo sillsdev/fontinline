@@ -534,18 +534,13 @@ def calculate_midlines(midpoints, bounding_polygon):
         """How many connections is this point part of? In other words, how
         many other points are on the triangles this point belongs to?
         """
-        t = triangles[point]
-        debug('Finding arity of point {}, part of the following triangles: {}', point, t)
-        method1 = max(*map(len, t))  # This isn't quite correct: a point that's part of two triangles should have an arity of 4, not 3.
         # To get a perfectly accurate count:
         #   1) Flatten the list of triangles
         #   2) Filter out the current point
         #   3) Return the count of the remainder
+        t = triangles[point]
         otherpoints = filter(lambda x: x != point, flatten(t))
-        method2 = len(otherpoints)
-        if method1 != method2:
-            debug("Interesting: map(len, t) gave {} arity, but filter(flatten(t)) gave {} arity", method1, method2)
-        return method2
+        return len(otherpoints)
 
     exit_now = False
     while not done() and not exit_now:
