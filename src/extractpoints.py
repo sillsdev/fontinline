@@ -552,7 +552,7 @@ def calculate_midlines(midpoints, bounding_polygon):
             debug('Point {} has arity {}', curpt, a)
             draw_fat_point(args.screen, curpt, args.em, args.zoom, blue)
         nextpt = next_point(curpt)
-        if nextpt in finished_points:
+        if nextpt is None or nextpt in finished_points:
             break
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
@@ -580,7 +580,7 @@ def calculate_midlines(midpoints, bounding_polygon):
             debug('Point {} has arity {}', curpt, a)
             draw_fat_point(args.screen, curpt, args.em, args.zoom, red)
         nextpt = next_point(curpt)
-        if nextpt in finished_points:
+        if nextpt is None or nextpt in finished_points:
             finished_points.append(curpt)
             continue
         while nextpt is not None:
@@ -597,6 +597,8 @@ def calculate_midlines(midpoints, bounding_polygon):
                 break
         drawn_lines.append(current_line)
         current_line = []
+    # At this point we'll have drawn all lines except for intersections.
+    # TODO: Figure out what to do about intersections
 
     return drawn_lines
 
