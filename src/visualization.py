@@ -74,14 +74,15 @@ def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylin
     This function is pending deprecation."""
     global args
 
-    for t in triangles:
-        x1 = int(t.a.x * zoom)
-        y1 = int((emsize-t.a.y) * zoom)
-        x2 = int(t.b.x * zoom)
-        y2 = int((emsize-t.b.y) * zoom)
-        x3 = int(t.c.x * zoom)
-        y3 = int((emsize-t.c.y) * zoom)
-        trigon(screen, x1, y1, x2, y2, x3, y3, trianglecolor)
+    if trianglecolor is not None:
+        for t in triangles:
+            x1 = int(t.a.x * zoom)
+            y1 = int((emsize-t.a.y) * zoom)
+            x2 = int(t.b.x * zoom)
+            y2 = int((emsize-t.b.y) * zoom)
+            x3 = int(t.c.x * zoom)
+            y3 = int((emsize-t.c.y) * zoom)
+            trigon(screen, x1, y1, x2, y2, x3, y3, trianglecolor)
 
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
