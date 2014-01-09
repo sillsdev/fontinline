@@ -9,7 +9,7 @@ from generalfuncs import pairwise
 
 red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 255)
+blue = pygame.Color(0, 128, 255)
 
 def setup_screen():
     SCREEN_SIZE = (1280,800)
