@@ -557,7 +557,18 @@ def calculate_midlines(midpoints, bounding_polygon):
             return edgepoint
         else:
             t = tris[0]
+        # Special case: if ANY point in t has arity 4, then we should use that
+        # point (the place where two intersection triangles touch), rather than
+        # the center of *this* triangle, as our "centerpoint"
+        debug('Testing arity of all of {}', t)
+        for p in t:
+            if arity(p) == 4:
+                debug('arity 4 found')
+                debug('returning centerpoint of {}', p)
+                return p
+        debug('arity was 3 or less for all points')
         centerpoint = center_of_triangle(t)
+        debug('returning centerpoint of {}', centerpoint)
         return centerpoint
 
     exit_now = False
