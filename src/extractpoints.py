@@ -349,14 +349,6 @@ def filtertriangles(triangles, outlines):
             #draw_fat_point(args.screen, m, args.em, args.zoom, red)
         return not any(iscloseto(line, outline) for outline in outlines)
     #if len(triangles) <= 2000:
-    if False:
-        print "DEBUG: triangles before filtering:"
-        import pprint
-        pprint.pprint(triangles)
-        print "DEBUG: outlines before filtering"
-        pprint.pprint(outlines)
-        print "DEBUG: triangles after filtering:"
-        pprint.pprint(list(iterfilter_stopatvectors(isvalid, triangles)))
     return iterfilter_stopatvectors(isvalid, triangles)
 
 #================
@@ -469,11 +461,6 @@ def calculate_midlines(midpoints, bounding_polygon):
             triangles[m].append(tri)
         # Instead of "if len(tri) == 1: singles.append(tri)", etc., we can do:
         [[], singles, doubles, triples][len(tri)].append(tri)
-    #debug('{} endpoints found', len(singles))
-    #debug('{} ', singles)
-    #debug('{} midpoints found', len(doubles))
-    #debug('{} tripoints found', len(triples))
-    #debug('{} ', triples)
 
     current_line = []  # Will be a list of vectors (pairs of points)
     drawn_lines = []  # Will be a list of lists of vectors (pairs of points)
@@ -516,7 +503,6 @@ def calculate_midlines(midpoints, bounding_polygon):
         return None
 
     def next_point(cur_point):
-        #debug('next_point({}) called with connected points: {}', cur_point, connected_points)
         old_point = get_other_point(connected_points[cur_point], cur_point)
         # All midpoints are part of two triangles. If only one of those has
         # two valid sides (two remaining points), draw to it. If there are
@@ -560,15 +546,10 @@ def calculate_midlines(midpoints, bounding_polygon):
         # Special case: if ANY point in t has arity 4, then we should use that
         # point (the place where two intersection triangles touch), rather than
         # the center of *this* triangle, as our "centerpoint"
-        debug('Testing arity of all of {}', t)
         for p in t:
             if arity(p) == 4:
-                debug('arity 4 found')
-                debug('returning centerpoint of {}', p)
                 return p
-        debug('arity was 3 or less for all points')
         centerpoint = center_of_triangle(t)
-        debug('returning centerpoint of {}', centerpoint)
         return centerpoint
 
     exit_now = False
@@ -577,15 +558,6 @@ def calculate_midlines(midpoints, bounding_polygon):
         if curpt is None:
             break
         ac = arity(curpt)
-        if ac > 2:
-            debug('Found arity greater than 2 in singles')
-            debug('Point {} has arity {}', curpt, ac)
-            color = red
-            if ac > 3:
-                debug('Found arity greater than 3 in singles')
-                import pygame
-                color = pygame.Color(255, 255, 255)
-            #draw_fat_point(args.screen, curpt, args.em, args.zoom, color)
         nextpt = next_point(curpt)
         if nextpt is None or nextpt in finished_points:
             break
@@ -620,14 +592,6 @@ def calculate_midlines(midpoints, bounding_polygon):
         if curpt is None:
             break
         ac = arity(curpt)
-        if ac > 2:
-            debug('Point {} has arity {}', curpt, ac)
-            color = red
-            if ac > 3:
-                debug('... and it was in the triples list')
-                import pygame
-                color = pygame.Color(255, 255, 255)
-            #draw_fat_point(args.screen, curpt, args.em, args.zoom, color)
         nextpt = next_point(curpt)
         if nextpt is None or nextpt in finished_points:
             finished_points.append(curpt)
@@ -751,24 +715,18 @@ def extraction_demo(fname,letter):
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
             midlines = list(calculate_midlines(midpoints, bounding_polygon))
-            #debug('Calculated midlines: {}', midlines)
             # Structure of midpoints now:
             # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
             # And m1, m2, m3 are (x,y)
             # Basically, each triangle's vectors have been changed to midpoints,
             # but the structure still remains
             #print len(midpoints), 'midpoints found'
-            #debug(midpoints)
             for t in midpoints:
                 if len(t) == 1:
-                    #debug("Identified endpoint:")
                     for m in t:
-                        #debug(m)
-                        #draw_fat_point(screen, m, args.em, args.zoom, green)
                         pass
             allmidpoints.extend(midpoints)
             allmidlines.extend(map(vectorpairs_to_pointlist, midlines))
-            #debug('All midlines so far: {}', allmidlines)
 
             # Step 1: Find neighbors (points within distance X, about half the stroke width)
             """ Comment out this block -- we're redoing it with triangle-based algorithm
@@ -870,15 +828,12 @@ def debug(s, *args, **kwargs):
 def new_extraction_method(fontfilename, lettername):
     glyph = get_glyph(fontfilename, lettername)
     emsize = glyph.font.em
-    debug("Glyph {} has em size {}", glyph.glyphname, emsize)
     # Data formats we'll use:
     # 1) Lists of Fontforge points forming a closed outline. The lists are not closed. These are "ffoutlines".
     # 2) Lists of (x,y) tuples (x and y are floats) forming a closed outline. The lists are not closed. These are "polylines".
     data = AttrDict()
     data.outlines = []
     for contour in glyph.foreground:
-        debug("This {}clockwise contour has {} points:", ('' if contour.isClockwise() else 'counter-'), len(contour))
-        #debug(contour)
         outline = AttrDict()
         outline.contour = contour
         # Many contours will have two or more off-curve points in a row. The
@@ -889,20 +844,15 @@ def new_extraction_method(fontfilename, lettername):
         # Now we should work out the stroke width of the contour. First find any straight lines...
         strokewidth = 1e999
         for a, b in find_straight_lines(outline.complete_contour):
-            #debug("Found a straight line: {}", (a,b))
             distance = vectorlength(a,b)
             strokewidth = min(distance, strokewidth)
         if strokewidth < 1e999:
-            #debug("Found stroke width of {}", strokewidth)
             pass
         else:
-            #debug("Couldn't find stroke width")
             pass
         outline.polyline = any_to_polyline(outline.complete_contour)
         outline.linestring = any_to_linestring(outline.complete_contour)
         data.outlines.append(outline)
-
-        #debug(list(outline.linestring.coords))
 
 def parse_args():
     "Parse the arguments the user passed in"
