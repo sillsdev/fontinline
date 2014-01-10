@@ -32,6 +32,7 @@ from generalfuncs import (
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, itermap, iterfilter, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
+    center_of_triangle,
 )
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
@@ -542,28 +543,60 @@ def calculate_midlines(midpoints, bounding_polygon):
         otherpoints = filter(lambda x: x != point, flatten(t))
         return len(otherpoints)
 
+    def find_centerpoint(edgepoint):
+        """Given a single point on one side of a triangle, find the center
+        point of the triangle."""
+        # Find the intersection triangle (the one with three sides remaining)
+        tris = [t for t in triangles[edgepoint] if len(t) == 3]
+        if len(tris) < 1:
+            return None
+        elif len(tris) > 1:
+            # If we're right between two intersection triangles, this point
+            # that's right between them is the center of the polygon formed
+            # by adding them both together.
+            return edgepoint
+        else:
+            t = tris[0]
+        centerpoint = center_of_triangle(t)
+        return centerpoint
+
     exit_now = False
     while not done() and not exit_now:
         curpt = first_not_in(singles, finished_points)
         if curpt is None:
             break
-        a = arity(curpt)
-        if a > 2:
-            debug('Point {} has arity {}', curpt, a)
-            draw_fat_point(args.screen, curpt, args.em, args.zoom, blue)
+        ac = arity(curpt)
+        if ac > 2:
+            debug('Found arity greater than 2 in singles')
+            debug('Point {} has arity {}', curpt, ac)
+            color = red
+            if ac > 3:
+                debug('Found arity greater than 3 in singles')
+                import pygame
+                color = pygame.Color(255, 255, 255)
+            #draw_fat_point(args.screen, curpt, args.em, args.zoom, color)
         nextpt = next_point(curpt)
         if nextpt is None or nextpt in finished_points:
             break
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
-            a = arity(curpt)
-            if a > 2:
+            an = arity(nextpt)
+            if an > 2:
+                # This is part of a triangle: cancel the line just drawn and
+                # draw to centerpoint of triangle instead. However, leave the
+                # connected_points dict (which record_drawn_line has updated)
+                # alone.
+                del current_line[-1]
+                center = find_centerpoint(nextpt)
+                current_line.append([curpt, center])
+            if ac > 2:
                 # TODO: Check that all this point's neighbors are finished; iff so, add this point to finished_points
                 finished_points.append(curpt)
             else:
                 finished_points.append(curpt)
             #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
+            ac = arity(curpt)
             nextpt = next_point(curpt)
             if nextpt in finished_points:
                 break
@@ -575,30 +608,68 @@ def calculate_midlines(midpoints, bounding_polygon):
         curpt = first_not_in(triples, finished_points)
         if curpt is None:
             break
-        a = arity(curpt)
-        if a > 2:
-            debug('Point {} has arity {}', curpt, a)
-            draw_fat_point(args.screen, curpt, args.em, args.zoom, red)
+        ac = arity(curpt)
+        if ac > 2:
+            debug('Point {} has arity {}', curpt, ac)
+            color = red
+            if ac > 3:
+                debug('... and it was in the triples list')
+                import pygame
+                color = pygame.Color(255, 255, 255)
+            #draw_fat_point(args.screen, curpt, args.em, args.zoom, color)
         nextpt = next_point(curpt)
         if nextpt is None or nextpt in finished_points:
             finished_points.append(curpt)
             continue
+        # Now because the current point was the side of a triangle, we want
+        # to draw the line from the centroid, not from the current point. We
+        # set curpt to the center here rather than earlier, because we needed
+        # it earlier in the next_point(curpt) call.
+        start_from = find_centerpoint(curpt)
+        if start_from is None:
+            print "find_centerpoint({}) failed...".format(curpt)
+            start_from = curpt
+            edit_line_after_recording = False
+        else:
+            edit_line_after_recording = True
         while nextpt is not None:
             record_drawn_line(curpt, nextpt)
-            if a > 2:
+            an = arity(nextpt)
+            if an > 2:
+                # This is part of a triangle: cancel the line just drawn and
+                # draw to centerpoint of triangle instead. However, leave the
+                # connected_points dict (which record_drawn_line has updated)
+                # alone.
+                end_at = find_centerpoint(nextpt)
+                edit_line_after_recording = True
+            else:
+                end_at = nextpt
+                # Leave edit_line_after_recording unchanged
+            if edit_line_after_recording:
+                del current_line[-1]
+                current_line.append([start_from, end_at])
+                edit_line_after_recording = False
+            if ac > 2:
                 # TODO: Check that all this point's neighbors are finished; iff so, add this point to finished_points
                 finished_points.append(curpt)
             else:
                 finished_points.append(curpt)
             #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
+            start_from = curpt
+            ac = arity(curpt)
             nextpt = next_point(curpt)
             if nextpt in finished_points:
                 break
         drawn_lines.append(current_line)
         current_line = []
-    # At this point we'll have drawn all lines except for intersections.
-    # TODO: Figure out what to do about intersections
+
+    #for t in triples:
+        #draw_fat_point(args.screen, center_of_triangle(t), args.em, args.zoom, green)
+
+    # One more thing we need to do: any 4-arity points need to have a line
+    # drawn between both of their centerpoints. See U+aa76 in Padauk font for
+    # a visual example of why. (The small loop near the bottom).
 
     return drawn_lines
 
@@ -718,7 +789,7 @@ def extraction_demo(fname,letter):
             """
             #break  # Uncomment this to draw only the first "world"
 
-    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=red)
+    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=None)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)

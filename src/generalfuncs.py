@@ -226,6 +226,16 @@ def averagepoint_as_tuplevector(v):
     """This function takes a vector of two tuples, and returns the midpoint of the vector."""
     return averagepoint_as_tuple(v[0], v[1])
 
+def center_of_triangle(t):
+    """This function takes a triangle (as a vector of three points) and returns
+    its center point."""
+    # Formula: (x1+x2+x3)/2, (y1+y2+y3)/3
+    # http://en.wikipedia.org/wiki/Centroid#Of_triangle_and_tetrahedron
+    p1, p2, p3 = t
+    x = (ux(p1) + ux(p2) + ux(p3)) / 3.0
+    y = (uy(p1) + uy(p2) + uy(p3)) / 3.0
+    return (x, y)
+
 def test(pred, a, b):
     if pred:
         return a
