@@ -85,6 +85,29 @@ def shallow_angle(a, b, c, tolerance=30):
     #print "Angle", abs(diff), "and tolerance", tolerance, "=", (abs(diff) < tolerance)
     return abs(diff) < tolerance
 
+def distance_to_line(p, l):
+    """Return the distance from point p to line l. (l should be a vector of two points.)
+
+    If line L is written in the form ax + by + c = 0, and the coordinates of
+    point P are (Px, Py), then the formula for the distance is:
+
+    abs(a*PX + b*Py + c) / sqrt(a^2 + b^2)
+
+    See http://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line for proof."""
+    px = ux(p)
+    py = uy(p)
+    # Formula for converting a two-point formulation of the line (e.g., the
+    # line extends from P1 to P2 and beyond) to the ax + by + c = 0 formula:
+    # a = (y1 - y2), b = (x2 - x1), c = (x1*y2) - (x2*y1)
+    # Source: http://math.stackexchange.com/q/422602
+    x1, y1 = ux(l[0]), uy(l[0])
+    x2, y2 = ux(l[1]), uy(l[1])
+    a = (y1-y2)
+    b = (x2-x1)
+    c = (x1*y2) - (x2*y1)
+    return abs(a*px + b*py + c) / math.sqrt(a**2 + b**2)
+
+
 def iterfilter_stopatvectors(predicate, nestedlist):
     """Special version of iterfilter that will stop at vectors.
     A "vector" here is defined as a list of two tuples."""
