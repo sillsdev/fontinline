@@ -728,37 +728,6 @@ def extraction_demo(fname,letter):
             allmidpoints.extend(midpoints)
             allmidlines.extend(map(vectorpairs_to_pointlist, midlines))
 
-            # Step 1: Find neighbors (points within distance X, about half the stroke width)
-            """ Comment out this block -- we're redoing it with triangle-based algorithm
-            neighbor_distance = width * 1.5
-            all_neighbors = find_neighbors(midpoints, neighbor_distance)
-
-            # Step 2: Any points with all neighbors in the "same direction" are endpoints
-            # Note that "same direction" is a fuzzy concept: how wide of an arc needs
-            # to contain all the neighbors before they count as "same direction"?
-            # 60 degrees? 120 degrees? After all, several of its neighbors may
-            # be along a curve...
-            def is_endpoint(point, neighborlist):
-                if len(neighborlist) == 1:
-                    return True
-                return all(similar_direction(point, a, b, 60) for a, b in pairwise(neighborlist))
-            endpoints = [point for (point, neighbors) in all_neighbors.items() if is_endpoint(point, neighbors)]
-            for p in endpoints:
-                debug('Endpoint: {}', p)
-                draw_fat_point(screen, p, args.em, args.zoom, green)
-                pass
-            #print "Identified endpoints:"
-            #print endpoints
-
-            # Calculate the midlines, then append them
-            midlines = vectorpairs_to_pointlist(calculate_midlines(midpoints, endpoints, bounding_polygon))
-            print "Calculated these midlines:"
-            for m in midlines:
-                print m
-            allmidlines.append(midlines)
-            """
-            #break  # Uncomment this to draw only the first "world"
-
     if args.triangles:
         color = red
     else:
