@@ -56,8 +56,8 @@ def uy(p):
 
 def angle(point1, point2):
     """Calculate the angle (in degrees) of the line between point1 and point2.
-    Angles are calculated clockwise from the X axis, so that (0,0)->(1,0) is
-    0 degrees, and (0,0)->(0,1) is 90 degrees."""
+    Angles are calculated counterclockwise from the X axis, so that (0,0)->(1,0)
+    is 0 degrees, and (0,0)->(0,1) is 90 degrees."""
     ax = ux(point1)
     ay = uy(point1)
     bx = ux(point2)
