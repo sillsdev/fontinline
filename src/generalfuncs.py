@@ -252,7 +252,7 @@ def averagepoint_as_tuplevector(v):
 def center_of_triangle(t):
     """This function takes a triangle (as a vector of three points) and returns
     its center point."""
-    # Formula: (x1+x2+x3)/2, (y1+y2+y3)/3
+    # Formula: (x1+x2+x3)/3, (y1+y2+y3)/3
     # http://en.wikipedia.org/wiki/Centroid#Of_triangle_and_tetrahedron
     p1, p2, p3 = t
     x = (ux(p1) + ux(p2) + ux(p3)) / 3.0
