@@ -122,8 +122,19 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
         #print (x,y)
         #pixel(screen, x, y, midpointcolor)
 
+    allcolors = []
+    import random
+    for r in (128,255,0):
+        for g in (255,0,128):
+            for b in (0,128,255):
+                # Reject any colors that are too dark
+                if r+g+b < 192:
+                    continue
+                allcolors.append(pygame.Color(r,g,b))
+    rotating_colors = itertools.cycle(allcolors)
     # Close the polylines loop again prior to drawing
     for polyline in polylines:
+        color = rotating_colors.next()
         #polyline.append(polyline[0])
         flipped = flip_polyline(polyline, emsize)
         for a, b in pairwise(flipped):
@@ -131,7 +142,8 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
             y1 = int(a[1] * zoom)
             x2 = int(b[0] * zoom)
             y2 = int(b[1] * zoom)
-            line(screen, x1, y1, x2, y2, polylinecolor)
+            #line(screen, x1, y1, x2, y2, polylinecolor)
+            line(screen, x1, y1, x2, y2, color)
             pygame.display.update()
     # Show result
 
