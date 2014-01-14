@@ -54,6 +54,14 @@ def uy(p):
         result = p[1]
     return float(result)
 
+def normalize_angle(a):
+    """Return angle a normalized to between -180 and +180 degrees."""
+    while a < -180.0:
+        a += 360.0
+    while a > 180.0:
+        a -= 360.0
+    return a
+
 def angle(point1, point2):
     """Calculate the angle (in degrees) of the line between point1 and point2.
     Angles are calculated counterclockwise from the X axis, so that (0,0)->(1,0)
@@ -63,6 +71,13 @@ def angle(point1, point2):
     bx = ux(point2)
     by = uy(point2)
     return 180.0 * math.atan2(by-ay, bx-ax) / math.pi
+
+def angle_between(line1, line2):
+    """Calculate the relative angle (in degrees) between line1 and line2."""
+    a1 = angle(line1[0], line1[1])
+    a2 = angle(line2[0], line2[1])
+    delta = normalize_angle(a2 - a1)
+    return delta
 
 def similar_direction(point1, point2, point3, tolerance=30):
     """Check whether points 2 and 3 are in a similar direction from point 1.
@@ -107,6 +122,41 @@ def distance_to_line(p, l):
     c = (x1*y2) - (x2*y1)
     return abs(a*px + b*py + c) / math.sqrt(a**2 + b**2)
 
+def new_line_at_angle(l, angledelta, p=None, length=500.0):
+    """Return the endpoints of a new line at a certain angle from line l.
+    If given, p is the starting point of the new line. If not given, the
+    starting point will be the *second* point of l.
+    If desired, the length of the new line can be specified. The default is
+    500 units, which should be long enough to intersect any other relevant lines."""
+    if p is None:
+        p = l[1]
+    given_direction = angle(l[0], l[1])
+    new_direction = normalize_angle(given_direction + angledelta)
+    dx = length * math.cos(math.radians(new_direction))
+    dy = length * math.sin(math.radians(new_direction))
+    p1 = (ux(p), uy(p))  # In case p was in fontforge point format
+    p2 = (ux(p) + dx, ux(p) + dy)
+    return [p1, p2]
+
+def n_segments_containing(polyline, point, n=3, epsilon=1e-9):
+    """Return the n line segments from whichever end of the line contains
+    the given point. If there are fewer than n line segments in the whole
+    polyline, return as many segments as there are."""
+    n = min(n, len(polyline))
+    # First check last n segments
+    candidates = polyline[-n:]
+    for candidate in reversed(candidates):
+        for p in candidate:
+            if are_points_equal(p, point, epsilon):
+                return list(candidates)
+    # Then check first n segments
+    candidates = polyline[:n]
+    for candidate in candidates:
+        for p in candidate:
+            if are_points_equal(p, point, epsilon):
+                return list(candidates)
+    # Not found? Return empty list
+    return []
 
 def iterfilter_stopatvectors(predicate, nestedlist):
     """Special version of iterfilter that will stop at vectors.

@@ -145,5 +145,21 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
             #line(screen, x1, y1, x2, y2, polylinecolor)
             line(screen, x1, y1, x2, y2, color)
             pygame.display.update()
+        from generalfuncs import angle_between, n_segments_containing
+        #print 'Last of flipped: {}'.format(flipped[-1])
+        last_few = n_segments_containing(list(pairwise(flipped)), flipped[-1], n=5)
+        print last_few
+        previous = None
+        for a, b in last_few:
+            x1 = int(a[0] * zoom)
+            y1 = int(a[1] * zoom)
+            x2 = int(b[0] * zoom)
+            y2 = int(b[1] * zoom)
+            line(screen, x1, y1, x2, y2, red)
+            if previous is not None:
+                print "Angle: {}".format(angle_between(previous, [a,b]))
+            previous = [a,b]
+            pygame.display.update()
+        raw_input('Press Enter to continue...')
     # Show result
 

@@ -32,7 +32,7 @@ from generalfuncs import (
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, itermap, iterfilter, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
-    center_of_triangle,
+    center_of_triangle, n_segments_containing, angle_between,
 )
 
 DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
@@ -565,13 +565,21 @@ def calculate_midlines(midpoints, bounding_polygon):
             record_drawn_line(curpt, nextpt)
             an = arity(nextpt)
             if an > 2:
+                # Alternate approach
+                if True:
+                    last_n = n_segments_containing(current_line, nextpt, n=5)
+                    def foo(pair):
+                        return angle_between(*pair)
+                    angles = map(foo, pairwise(last_n))
+                    debug('Angles: {}', angles)
                 # This is part of a triangle: cancel the line just drawn and
                 # draw to centerpoint of triangle instead. However, leave the
                 # connected_points dict (which record_drawn_line has updated)
                 # alone.
-                del current_line[-1]
-                center = find_centerpoint(nextpt)
-                current_line.append([curpt, center])
+                if True:
+                    del current_line[-1]
+                    center = find_centerpoint(nextpt)
+                    current_line.append([curpt, center])
             if ac > 2:
                 # TODO: Check that all this point's neighbors are finished; iff so, add this point to finished_points
                 finished_points.append(curpt)
@@ -621,9 +629,18 @@ def calculate_midlines(midpoints, bounding_polygon):
                 end_at = nextpt
                 # Leave edit_line_after_recording unchanged
             if edit_line_after_recording:
-                del current_line[-1]
-                current_line.append([start_from, end_at])
-                edit_line_after_recording = False
+                # Alternate approach
+                if True:
+                    last_n = n_segments_containing(current_line, nextpt, n=5)
+                    def foo(pair):
+                        return angle_between(*pair)
+                    angles = map(foo, pairwise(last_n))
+                    debug('Angles: {}', angles)
+                # Original approach
+                if True:
+                    del current_line[-1]
+                    current_line.append([start_from, end_at])
+                    edit_line_after_recording = False
             if ac > 2:
                 # TODO: Check that all this point's neighbors are finished; iff so, add this point to finished_points
                 finished_points.append(curpt)
