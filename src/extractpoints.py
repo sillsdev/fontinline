@@ -759,7 +759,11 @@ def extraction_demo(fname,letter):
             """
             #break  # Uncomment this to draw only the first "world"
 
-    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=None)
+    if args.triangles:
+        color = red
+    else:
+        color = None
+    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=color)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
@@ -864,6 +868,7 @@ def parse_args():
     parser.add_argument('-z', '--zoom', action="store", type=float, default=1.0, help="Zoom level (default 1.0)")
     parser.add_argument('-m', '--minstrokewidth', action="store", type=float, default=1, help="The minimum stroke width")
     parser.add_argument('-M', '--maxstrokewidth', action="store", type=float, default=1e100, help="The maximum stroke width")
+    parser.add_argument('-t', '--triangles', action="store_true", help="Show the glyph triangulation")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'
