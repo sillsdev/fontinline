@@ -158,6 +158,72 @@ def n_segments_containing(polyline, point, n=3, epsilon=1e-9):
     # Not found? Return empty list
     return []
 
+def intersection_point_in_ua_ub_form(line_a, line_b, epsilon=1e-9):
+    # Source: http://paulbourke.net/geometry/pointlineplane/
+    # Let P1, P2 be the endpoints of line_a
+    # Let P3, P4 be the endpoints of line_b
+    # line_a equation: Pa = P1 + ua*(P2-P1)
+    # line_b equation: Pb = P3 + ub*(P4-P3)
+    # where ua and ub are weights that vary between 0.0 and 1.0
+    #
+    # Solving for the point Pa = Pb gives:
+    # x1 + ua*(x2-x1) = x3 + ub*(x4-x3)
+    # y1 + ua*(y2-y1) = y3 + ub*(y4-y3)
+    #
+    # Solving these two equations for ua and ub gives:
+    # ua = (x4-x3)*(y1-y3) - (y4-y3)*(x1-x3) / (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1)
+    # ub = (x2-x1)*(y1-y3) - (y2-y1)*(x1-x3) / (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1)
+    #
+    # Note that the denominator of both the ua and ub formulas is identical.
+    # One interesting property of these formulas is that if the two lines are
+    # parallel, the denominator of those two equations will be 0.
+    p1, p2 = line_a
+    p3, p4 = line_b
+    x1, y1 = ux(p1), uy(p1)
+    x2, y2 = ux(p2), uy(p2)
+    x3, y3 = ux(p3), uy(p3)
+    x4, y4 = ux(p4), uy(p4)
+    # For parallel lines, we'll return None (no intersection).
+    denom = float((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+    if abs(denom) < epsilon:
+        return None, None, None, None
+    ua = (x4-x3)*(y1-y3) - (y4-y3)*(x1-x3) / denom
+    #ub = (x2-x1)*(y1-y3) - (y2-y1)*(x1-x3) / denom   # From the site above
+    ub = (y2-y1)*(x3-x1) - (x2-x1)*(y1-y3)  / denom   # My calculations
+    x = x1 + ua*(x2-x1)
+    y = y1 + ub*(y2-y1)
+    return (ua, ub, x, y)
+
+def intersection_point_of_lines(line_a, line_b, epsilon=1e-9):
+    """Return the point where two lines intersect, or None if they do
+    not intersect. Lines should be given as vectors of two points.
+    This version calculates the intersection point of infinite lines, which
+    WILL intersect somewhere unless they're parallel."""
+    ua, ub, x, y = intersection_point_in_ua_ub_form(line_a, line_b, epsilon)
+    if ua is None:
+        return None
+    return (x,y)
+
+def intersection_point_of_segments(line_a, line_b, epsilon=1e-9):
+    """Return the point where two line segments intersect, or None if they do
+    not intersect. Lines should be given as vectors of two points.
+    This version calculates the intersection point of line segments, and only
+    returns an intersection point if it is within both segments. That is, the
+    segments [(0,0), (5,0)] and [(2,1), (2,6)] do not intersect, although they
+    would intersect if the vertical line segment were just a little bit longer.
+    Thus, this function would return None for that particular case."""
+    ua, ub, x, y = intersection_point_in_ua_ub_form(line_a, line_b, epsilon)
+    if ua is None:
+        return None
+    # The intersection point is within both segments iff ua and ub are both
+    # within the range of 0.0 to 1.0 (plus or minus an epsilon value to allow
+    # for the inherent imprecision of computer floats).
+    if (-epsilon) <= ua <= (1+epsilon) and \
+       (-epsilon) <= ub <= (1+epsilon):
+        return (x,y)
+    else:
+        return None
+
 def iterfilter_stopatvectors(predicate, nestedlist):
     """Special version of iterfilter that will stop at vectors.
     A "vector" here is defined as a list of two tuples."""
