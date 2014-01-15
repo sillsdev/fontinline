@@ -224,6 +224,12 @@ def intersection_point_of_segments(line_a, line_b, epsilon=1e-9):
     else:
         return None
 
+def intersection_with_shapely(line_a, line_b):
+    from dataconvert import any_to_linestring
+    a = any_to_linestring(line_a)
+    b = any_to_linestring(line_b)
+    return a.intersection(b)
+
 def iterfilter_stopatvectors(predicate, nestedlist):
     """Special version of iterfilter that will stop at vectors.
     A "vector" here is defined as a list of two tuples."""
