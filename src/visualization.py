@@ -5,7 +5,7 @@ import itertools
 import time
 from pygame.locals import QUIT, KEYDOWN, MOUSEBUTTONDOWN
 from pygame.gfxdraw import trigon, line, pixel, filled_circle
-from generalfuncs import pairwise
+from generalfuncs import pairwise, new_line_at_angle
 
 red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
@@ -149,8 +149,26 @@ def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinec
         #print 'Last of flipped: {}'.format(flipped[-1])
         last_few = n_segments_containing(list(pairwise(flipped)), flipped[-1], n=5)
         print last_few
+        def find_angle(linepair):
+            a, b = linepair
+            return angle_between(a, b)
+        angles = map(find_angle, pairwise(last_few))
+        # Last angle is probably distorted, so skip it
+        average_angle = sum(angles[:-1]) / float(len(angles)-1)
+        try:
+            baseline = last_few[-2]
+        except IndexError:
+            continue
+        newline = new_line_at_angle(baseline, average_angle)
+        a, b = newline
+        x1 = int(a[0] * zoom)
+        y1 = int(a[1] * zoom)
+        x2 = int(b[0] * zoom)
+        y2 = int(b[1] * zoom)
+        line(screen, x1, y1, x2, y2, blue)
+        print "Angles: {}".format(angles)
         previous = None
-        for a, b in last_few:
+        for a, b in last_few[:-1]:
             x1 = int(a[0] * zoom)
             y1 = int(a[1] * zoom)
             x2 = int(b[0] * zoom)
