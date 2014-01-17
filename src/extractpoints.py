@@ -680,6 +680,7 @@ def extraction_demo(fname,letter):
     else:
         codepoint = letter
     glyph = font[codepoint]
+    glyph.unlinkRef()
     layer = glyph.foreground
     print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     polylines = []
