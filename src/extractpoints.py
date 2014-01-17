@@ -648,6 +648,27 @@ def calculate_midlines(midpoints, bounding_polygon):
 
     return drawn_lines
 
+def calculate_dots(midlines, bounding_polygon, radius, spacing):
+    # TODO: We may not need the bounding_polygon param. Remove it if unneeded.
+    # Radius and spacing, at this point, should be in the same length units
+    # as the midlines lengths.
+    linestrings = []
+    # Midlines is in the format [line1, line2, line3] and each line (polyline
+    # really) is in the format [[p1,p2],[p2,p3],[p3,p4]...,[p(n-1),pn]]. We
+    # want to use shapely.LineString objects, whose constructor wants the
+    # format [p1,p2,p3,...,pn].
+    for line in midlines:
+        linestrings.append(any_to_linestring(vectorpairs_to_pointlist(line)))
+    dots = []
+    for line in linestrings:
+        distance = 0.0
+        while distance <= line.length:
+            dot = line.interpolate(distance)
+            #dot = line.interpolate(distance).buffer(radius)
+            dots.append(dot)
+            distance += spacing
+    return dots
+
 def extraction_demo(fname,letter):
     font = fontforge.open(fname)
     global args
@@ -686,6 +707,8 @@ def extraction_demo(fname,letter):
     for level in approx_level_data[::2]:
         for polydata in level:
             width = calculate_width(polydata)
+            radius = args.radius * width
+            spacing = args.spacing * width
 
             # Recalculate the data['poly'] and data['line'] shapes,
             # subdividing Beziers and vectors based on calculated width
@@ -715,6 +738,10 @@ def extraction_demo(fname,letter):
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
             midlines = list(calculate_midlines(midpoints, bounding_polygon))
+            dots = list(calculate_dots(midlines, bounding_polygon, radius, spacing))
+            if args.show_dots:
+                for dot in dots:
+                    draw_fat_point(screen, dot, args.em, args.zoom, blue)
             # Structure of midpoints now:
             # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
             # And m1, m2, m3 are (x,y)
@@ -759,7 +786,7 @@ def extraction_demo(fname,letter):
             """
             #break  # Uncomment this to draw only the first "world"
 
-    if args.triangles:
+    if args.show_triangles:
         color = red
     else:
         color = None
@@ -767,7 +794,8 @@ def extraction_demo(fname,letter):
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
-    draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+    if args.show_lines:
+        draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
     wait_for_keypress(args.em, args.zoom)
     return points
 
@@ -860,18 +888,37 @@ def new_extraction_method(fontfilename, lettername):
 
 def parse_args():
     "Parse the arguments the user passed in"
-    parser = argparse.ArgumentParser(description="Demonstrate parsing arguments")
+    parser = argparse.ArgumentParser(description="""
+        This is a demo of creating a dotted font automatically, given an
+        existing font. The demo takes two required parameters, the font file
+        to work from and the name (or Unicode codepoint) of the glyph to use
+        in the demo. The -z or --zoom parameter is theoretically optional,
+        but is probably required in practice if you want to be able to see
+        anything. Good values to try are -z 0.5 or -z 0.25 depending on the
+        font you've selected.
+        """, epilog="""
+        Example of usage: python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf U+aa75 -z 0.5 -dl
+        """)
     #parser.add_argument('--help', help="Print the help string")
     parser.add_argument('-v', '--verbose', action="store_true", help="Give more verbose error messages")
     parser.add_argument("inputfilename", nargs="?", default=DEFAULT_FONT, help="Font file (SFD or TTF format)")
-    parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name to extract")
+    parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name (or Unicode codepoint in U+89AB format)")
     parser.add_argument('-z', '--zoom', action="store", type=float, default=1.0, help="Zoom level (default 1.0)")
-    parser.add_argument('-m', '--minstrokewidth', action="store", type=float, default=1, help="The minimum stroke width")
-    parser.add_argument('-M', '--maxstrokewidth', action="store", type=float, default=1e100, help="The maximum stroke width")
-    parser.add_argument('-t', '--triangles', action="store_true", help="Show the glyph triangulation")
+    parser.add_argument('-m', '--minstrokewidth', action="store", type=float, default=1, help="The minimum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
+    parser.add_argument('-M', '--maxstrokewidth', action="store", type=float, default=1e100, help="The maximum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
+    parser.add_argument('-t', '--show-triangles', action="store_true", help="Show the glyph triangulation")
+    parser.add_argument('-l', '--show-lines', action="store_true", help="Show the midlines of the glyph")
+    parser.add_argument('-d', '--show-dots', action="store_true", help="Show the dots that make the dotted version")
+    parser.add_argument('-r', '--radius', action="store", type=float, default=0.05, help="Radius of dots, as a multiple of stroke width (default 0.05 for 5%%) (not yet implemented)")
+    parser.add_argument('-s', '--spacing', action="store", type=float, default=1.0, help="Spacing of dots, as a multiple of stroke width (default 1.0 for 100%%)")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'
+    if not (args.show_triangles or args.show_lines or args.show_dots):
+        parser.print_help()
+        print
+        print "Error: Please use at least one of the -t, -l or -d options."
+        sys.exit(2)
     return args
 
 def main():
