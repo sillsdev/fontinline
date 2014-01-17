@@ -787,10 +787,14 @@ def extraction_demo(fname,letter):
             #break  # Uncomment this to draw only the first "world"
 
     if args.show_triangles:
-        color = red
+        trianglecolor = red
     else:
-        color = None
-    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=blue, trianglecolor=color)
+        trianglecolor = None
+    if args.hide_outline:
+        polylinecolor = None
+    else:
+        polylinecolor = blue
+    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=polylinecolor, trianglecolor=trianglecolor)
     #draw_midlines(screen,[],midpoints)
     #lines=points_to_all_lines(midpoints, width*1.2)
     #draw_midlines(screen, lines, midpoints, polylinecolor=green)
@@ -909,6 +913,7 @@ def parse_args():
     parser.add_argument('-t', '--show-triangles', action="store_true", help="Show the glyph triangulation")
     parser.add_argument('-l', '--show-lines', action="store_true", help="Show the midlines of the glyph")
     parser.add_argument('-d', '--show-dots', action="store_true", help="Show the dots that make the dotted version")
+    parser.add_argument('-o', '--hide-outline', action="store_true", help="Hide the glyph outline")
     parser.add_argument('-r', '--radius', action="store", type=float, default=0.05, help="Radius of dots, as a multiple of stroke width (default 0.05 for 5%%) (not yet implemented)")
     parser.add_argument('-s', '--spacing', action="store", type=float, default=1.0, help="Spacing of dots, as a multiple of stroke width (default 1.0 for 100%%)")
     args = parser.parse_args()

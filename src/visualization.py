@@ -85,30 +85,32 @@ def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylin
             trigon(screen, x1, y1, x2, y2, x3, y3, trianglecolor)
 
     # Close the polylines loop again prior to drawing
-    for polyline in polylines:
-        if hasattr(polyline, 'coords'):
-            polyline = list(polyline.coords)
-        polyline.append(polyline[0])
-        flipped = flip_polyline(polyline, emsize)
-        for a, b in pairwise(flipped):
-            x1 = int(a[0] * zoom)
-            y1 = int(a[1] * zoom)
-            x2 = int(b[0] * zoom)
-            y2 = int(b[1] * zoom)
-            line(screen, x1, y1, x2, y2, polylinecolor)
+    if polylinecolor is not None:
+        for polyline in polylines:
+            if hasattr(polyline, 'coords'):
+                polyline = list(polyline.coords)
+            polyline.append(polyline[0])
+            flipped = flip_polyline(polyline, emsize)
+            for a, b in pairwise(flipped):
+                x1 = int(a[0] * zoom)
+                y1 = int(a[1] * zoom)
+                x2 = int(b[0] * zoom)
+                y2 = int(b[1] * zoom)
+                line(screen, x1, y1, x2, y2, polylinecolor)
 
     # Same for holes
-    for hole in holes:
-        if hasattr(hole, 'coords'):
-            hole = list(hole.coords)
-        hole.append(hole[0])
-        flipped = flip_polyline(hole, emsize)
-        for a, b in pairwise(flipped):
-            x1 = int(a[0] * zoom)
-            y1 = int(a[1] * zoom)
-            x2 = int(b[0] * zoom)
-            y2 = int(b[1] * zoom)
-            line(screen, x1, y1, x2, y2, holecolor)
+    if holecolor is not None:
+        for hole in holes:
+            if hasattr(hole, 'coords'):
+                hole = list(hole.coords)
+            hole.append(hole[0])
+            flipped = flip_polyline(hole, emsize)
+            for a, b in pairwise(flipped):
+                x1 = int(a[0] * zoom)
+                y1 = int(a[1] * zoom)
+                x2 = int(b[0] * zoom)
+                y2 = int(b[1] * zoom)
+                line(screen, x1, y1, x2, y2, holecolor)
 
     # Show result
     pygame.display.update()
