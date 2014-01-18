@@ -1,3 +1,5 @@
+from __future__ import division
+
 """Library for visualizing our results"""
 
 import pygame

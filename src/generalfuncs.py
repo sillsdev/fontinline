@@ -1,3 +1,5 @@
+from __future__ import division
+
 """Library for generally useful functions
 
 Functions that are relatively self-contained, and which do math or iterator

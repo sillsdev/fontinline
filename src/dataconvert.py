@@ -1,3 +1,5 @@
+from __future__ import division
+
 """Library for converting lines and polygons between various formats
 
 Formats used in our code:
