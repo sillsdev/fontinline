@@ -652,8 +652,9 @@ def calculate_midlines(midpoints, bounding_polygon):
 
 def calculate_dots(midlines, bounding_polygon, radius, spacing):
     # TODO: We may not need the bounding_polygon param. Remove it if unneeded.
-    # Radius and spacing, at this point, should be in the same length units
-    # as the midlines lengths.
+    # Radius is in em units, same as the midlines lengths; spacing is given as
+    # a multiple of radius.
+    unit_spacing = spacing * radius
     linestrings = []
     # Midlines is in the format [line1, line2, line3] and each line (polyline
     # really) is in the format [[p1,p2],[p2,p3],[p3,p4]...,[p(n-1),pn]]. We
@@ -663,12 +664,16 @@ def calculate_dots(midlines, bounding_polygon, radius, spacing):
         linestrings.append(any_to_linestring(vectorpairs_to_pointlist(line)))
     dots = []
     for line in linestrings:
+        numdots = math.floor(line.length / float(unit_spacing))
+        if numdots < 1.0:
+            numdots = 1.0
+        line_spacing = line.length / float(numdots)
         distance = 0.0
         while distance <= line.length:
             dot = line.interpolate(distance)
             #dot = line.interpolate(distance).buffer(radius)
             dots.append(dot)
-            distance += spacing
+            distance += line_spacing
     return dots
 
 def extraction_demo(fname,letter):
@@ -710,8 +715,6 @@ def extraction_demo(fname,letter):
     for level in approx_level_data[::2]:
         for polydata in level:
             width = calculate_width(polydata)
-            radius = args.radius * width
-            spacing = args.spacing * width
 
             # Recalculate the data['poly'] and data['line'] shapes,
             # subdividing Beziers and vectors based on calculated width
@@ -741,10 +744,10 @@ def extraction_demo(fname,letter):
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
             midlines = list(calculate_midlines(midpoints, bounding_polygon))
-            dots = list(calculate_dots(midlines, bounding_polygon, radius, spacing))
+            dots = list(calculate_dots(midlines, bounding_polygon, args.radius, args.spacing))
             if args.show_dots:
                 for dot in dots:
-                    draw_fat_point(screen, dot, args.em, args.zoom, blue)
+                    draw_fat_point(screen, dot, args.em, args.zoom, args.radius, color=blue)
             # Structure of midpoints now:
             # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
             # And m1, m2, m3 are (x,y)
@@ -917,8 +920,8 @@ def parse_args():
     parser.add_argument('-l', '--show-lines', action="store_true", help="Show the midlines of the glyph")
     parser.add_argument('-d', '--show-dots', action="store_true", help="Show the dots that make the dotted version")
     parser.add_argument('-o', '--hide-outline', action="store_true", help="Hide the glyph outline")
-    parser.add_argument('-r', '--radius', action="store", type=float, default=0.05, help="Radius of dots, as a multiple of stroke width (default 0.05 for 5%%) (not yet implemented)")
-    parser.add_argument('-s', '--spacing', action="store", type=float, default=1.0, help="Spacing of dots, as a multiple of stroke width (default 1.0 for 100%%)")
+    parser.add_argument('-r', '--radius', action="store", type=float, default=5, help="Radius of dots, in em units")
+    parser.add_argument('-s', '--spacing', action="store", type=float, default=3.0, help="Spacing of dots, as a multiple of dot radius (default 3.0 for 300%%)")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'

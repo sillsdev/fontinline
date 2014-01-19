@@ -55,7 +55,7 @@ def flip_polyline(polylinelist, emsize):
                 result.append(tuple([x,y]))
     return result
 
-def draw_fat_point(screen, point, emsize=1024, zoom=1.0, color=red):
+def draw_fat_point(screen, point, emsize=1024, zoom=1.0, radius=4, color=red):
     try:
         x = int(point.x * zoom)
         y = int((emsize-point.y) * zoom)
@@ -69,7 +69,10 @@ def draw_fat_point(screen, point, emsize=1024, zoom=1.0, color=red):
         except AttributeError:
             x = int(point[0] * zoom)
             y = int((emsize-point[1]) * zoom)
-    filled_circle(screen, x, y, 4, color)
+    # Radius given in em units; convert to screen units
+    screen_height = screen.get_size()[1]
+    pixel_radius = radius * screen_height / float(emsize)
+    filled_circle(screen, x, y, int(pixel_radius), color)
 
 def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylinecolor=green, holecolor=blue, trianglecolor=red):
     """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.
