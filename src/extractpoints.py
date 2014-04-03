@@ -723,15 +723,9 @@ def extraction_demo(fname, letter):
             allmidlines.extend(map(vectorpairs_to_pointlist, midlines))
             #break  # Uncomment this to draw only the first "world"
 
-    if args.show_triangles:
-        trianglecolor = red
-    else:
-        trianglecolor = None
-    if args.hide_outline:
-        polylinecolor = None
-    else:
-        polylinecolor = blue
-    draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom, polylinecolor = polylinecolor, trianglecolor = trianglecolor)
+    draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom,
+        polylinecolor = (None if args.hide_outline else blue),
+        trianglecolor = (red if args.show_triangles else None))
     if args.show_lines:
         draw_midlines(screen, allmidlines, midpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
     wait_for_keypress(args.em, args.zoom)
