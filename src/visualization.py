@@ -14,13 +14,13 @@ green = pygame.Color(0, 255, 0)
 blue = pygame.Color(0, 128, 255)
 
 def setup_screen():
-    SCREEN_SIZE = (1280,800)
+    SCREEN_SIZE = (1280, 800)
     pygame.init()
-    screen = pygame.display.set_mode(SCREEN_SIZE,0,8)
+    screen = pygame.display.set_mode(SCREEN_SIZE, 0, 8)
     pygame.display.set_caption('Triangulation of glyph (name goes here)')
     return screen
 
-def wait_for_keypress(emsize=1024, zoom=1.0):
+def wait_for_keypress(emsize = 1024, zoom = 1.0):
     done = False
     while not done:
         e = pygame.event.wait()
@@ -49,13 +49,13 @@ def flip_polyline(polylinelist, emsize):
         #for point in polyline:
             try:
                 x, y = point.x, emsize-point.y
-                result.append(point.__class__(x,y))
+                result.append(point.__class__(x, y))
             except AttributeError:
                 x, y = point[0], emsize-point[1]
-                result.append(tuple([x,y]))
+                result.append(tuple([x, y]))
     return result
 
-def draw_fat_point(screen, point, emsize=1024, zoom=1.0, radius=4, color=red):
+def draw_fat_point(screen, point, emsize = 1024, zoom = 1.0, radius = 4, color = red):
     try:
         x = int(point.x * zoom)
         y = int((emsize-point.y) * zoom)
@@ -74,7 +74,7 @@ def draw_fat_point(screen, point, emsize=1024, zoom=1.0, radius=4, color=red):
     pixel_radius = radius * screen_height / float(emsize)
     filled_circle(screen, x, y, int(pixel_radius), color)
 
-def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylinecolor=green, holecolor=blue, trianglecolor=red):
+def draw_all(screen, polylines, holes, triangles, emsize = 1024, zoom = 1.0, polylinecolor = green, holecolor = blue, trianglecolor = red):
     """This function takes the list of polylines and holes and the triangulation, and draws it in pygame.
     This function is pending deprecation."""
     global args
@@ -120,13 +120,13 @@ def draw_all(screen, polylines, holes, triangles, emsize=1024, zoom=1.0, polylin
     # Show result
     pygame.display.update()
 
-def draw_midlines(screen, polylines, midpoints, emsize=1024, zoom=1.0, polylinecolor=green, midpointcolor=red):
+def draw_midlines(screen, polylines, midpoints, emsize = 1024, zoom = 1.0, polylinecolor = green, midpointcolor = red):
     """This function takes the list of polylines and midpoints, and draws them in pygame."""
     global args
     #for m in midpoints:
         #x = int(m[0] * zoom)
         #y = int((emsize-m[1]) * zoom)
-        #print (x,y)
+        #print (x, y)
         #pixel(screen, x, y, midpointcolor)
 
     # Close the polylines loop again prior to drawing

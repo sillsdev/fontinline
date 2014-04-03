@@ -12,13 +12,13 @@ import math
 import operator
 
 def pairwise(source):
-    """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
+    """This funcion takes any iterable [a, b, c, d, ...], and returns an iterator which yields (a,b), (b,c), (c,d)..."""
     source2 = itertools.islice(source, 1, None)
     for a, b in itertools.izip(source, source2):
         yield (a, b)
 
 def by_threes(source):
-    """This funcion takes any iterable [a,b,c,d,...], and returns an iterator which yields (a,b,c), (b,c,d), (c,d,e)..."""
+    """This funcion takes any iterable [a, b, c, d, ...], and returns an iterator which yields (a,b,c), (b,c,d), (c,d,e)..."""
     source2 = itertools.islice(source, 1, None)
     source3 = itertools.islice(source, 2, None)
     for a, b, c in itertools.izip(source, source2, source3):
@@ -26,18 +26,18 @@ def by_threes(source):
 
 def vectorlengthastuple(point1, point2):
     """This function takes two tuple-style points, and returns the distance between them"""
-    xdiff=float(point1[0]-point2[0])
-    ydiff=float(point1[1]-point2[1])
-    squaredlength=xdiff**2+ydiff**2
-    length=squaredlength**0.5
+    xdiff = float(point1[0] - point2[0])
+    ydiff = float(point1[1] - point2[1])
+    squaredlength = xdiff**2 + ydiff**2
+    length = squaredlength**0.5
     return length
 
 def vectorlength(point1, point2):
     """This function takes two fontforge points, and returns the distance between them"""
-    xdiff=point1.x-point2.x
-    ydiff=point1.y-point2.y
-    squaredlength=xdiff**2+ydiff**2
-    length=squaredlength**0.5
+    xdiff = point1.x - point2.x
+    ydiff = point1.y - point2.y
+    squaredlength = xdiff**2 + ydiff**2
+    length = squaredlength**0.5
     return length
 
 def ux(p):
@@ -66,7 +66,7 @@ def angle(point1, point2):
     by = uy(point2)
     return 180.0 * math.atan2(by-ay, bx-ax) / math.pi
 
-def similar_direction(point1, point2, point3, tolerance=30):
+def similar_direction(point1, point2, point3, tolerance = 30):
     """Check whether points 2 and 3 are in a similar direction from point 1.
     "Similar" can be redefined by changing the tolerance parameter (default 30 degrees)."""
     angle_to_p2 = angle(point1, point2)
@@ -76,7 +76,7 @@ def similar_direction(point1, point2, point3, tolerance=30):
         diff -= 360
     return abs(diff) < tolerance
 
-def shallow_angle(a, b, c, tolerance=30):
+def shallow_angle(a, b, c, tolerance = 30):
     """Check whether the lines AB and BC form a shallow enough angle.
     Note that this is different from similar_direction, which checks AB and AC."""
     angle_ab = angle(a, b)
@@ -138,7 +138,7 @@ def itermap_stopatvectors(f, nestedlist):
         else:
             yield f(item)
 
-def are_points_equal(a, b, epsilon=1e-9):
+def are_points_equal(a, b, epsilon = 1e-9):
     """Compares points a and b and returns true if they're equal.
 
     "Equal", here, is defined as "the difference is less than epsilon" since
@@ -153,7 +153,7 @@ def are_points_equal(a, b, epsilon=1e-9):
         x2, y2 = b[0], b[1]
     return (abs(x1-x2) < epsilon) and (abs(y1-y2) < epsilon)
 
-def flatten(nestedlist, islist=None):
+def flatten(nestedlist, islist = None):
     """Flattens a nested list. You can optionally pass in a predicate function
     that decides if a given item is a list or not; if none is given, the default
     is to check if the item is an instance of Python's list class."""
@@ -183,7 +183,7 @@ def compose(func1, func2):
 comp = functools.partial(compose, operator.not_)
 comp.__doc__ = """Return the complement function of f: whenever f(x) is true, comp(f(x)) is false and vice versa."""
 
-def are_lines_equal(v1, v2, epsilon=1e-9):
+def are_lines_equal(v1, v2, epsilon = 1e-9):
     simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
     reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
     #reversed_equality = False
@@ -225,15 +225,15 @@ def test(pred, a, b):
         return b
 
 def closertest(point, point2, point3):
-    return vectorlengthastuple(point1, point2)<vectorlengthastuple(point1, point3)
+    return vectorlengthastuple(point1, point2) < vectorlengthastuple(point1, point3)
 
-def closer(point1,point2,point3):
+def closer(point1, point2, point3):
     return test(closertest(point1, point2, point3), point2, point3)
 
-def closerish(point1,point2,point3,fudge):
-    return test(vectorlengthastuple(point1, point2)<fudge*vectorlengthastuple(point1, point3), point2, point3)
+def closerish(point1, point2, point3, fudge):
+    return test(vectorlengthastuple(point1, point2) < fudge * vectorlengthastuple(point1, point3), point2, point3)
 
-def further(point1,point2,point3):
+def further(point1, point2, point3):
     return test(comp(closertest)(point1, point2, point3), point2, point3)
 
 class AttrDict(dict):

@@ -3,10 +3,10 @@ from __future__ import division
 """Library for converting lines and polygons between various formats
 
 Formats used in our code:
-    polyline - a list of (x,y) tuples.
+    polyline - a list of (x, y) tuples.
     ffpointlist - a list of FontForge Point objects (with .x and .y attributes)
     LineString - a shapely.geometry.LineString object
-        linestring.coords acts like a list of (x,y) tuples
+        linestring.coords acts like a list of (x, y) tuples
     Polygon - a shapely.geometry.Polygon object
         polygon.exterior is a LinearRing (like a closed LineString) of the outside
         polygon.interiors is a list of LinearRings, one per "hole"

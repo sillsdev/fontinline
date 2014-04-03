@@ -37,8 +37,8 @@ from generalfuncs import (
     center_of_triangle,
 )
 
-DEFAULT_FONT='/usr/share/fonts/truetype/padauk/Padauk.ttf'
-DEFAULT_GLYPH='u1021'
+DEFAULT_FONT = '/usr/share/fonts/truetype/padauk/Padauk.ttf'
+DEFAULT_GLYPH = 'u1021'
 
 #==============
 #This section is for functions that calculate and return a different data type
@@ -53,18 +53,18 @@ def calculate_parents(polyline_tuples):
 
     The reason for passing the original FF contour is because our dictionary data
     structure is going to need to hold a reference to it."""
-    if polyline_tuples==[]:
+    if polyline_tuples == []:
         return []
-    polygons=[]
+    polygons = []
     for line, orig_contour in polyline_tuples:
-        d=dict()
-        d['poly']=Polygon(ff_to_tuple(line))
-        d['line']=line
-        d['contour']=orig_contour
-        d['children']=[]
-        d['parents']=[]
+        d = dict()
+        d['poly'] = Polygon(ff_to_tuple(line))
+        d['line'] = line
+        d['contour'] = orig_contour
+        d['children'] = []
+        d['parents'] = []
         polygons.append(d)
-    for a,b in itertools.permutations(polygons,2):
+    for a, b in itertools.permutations(polygons, 2):
         if a['poly'].within(b['poly']):
             a['parents'].append(b)
             b['children'].append(a)
@@ -74,13 +74,13 @@ def levels(polygons):
     """This function takes a list of dictionaries from the parentsandchildren function
     and turns it into a list of lists of dictionaries. Each inner list is the list of
     the dictionaries corresponding to the polylines at the level of the index of the list."""
-    maxdepth=-1
+    maxdepth = -1
     for item in polygons:
-        item['level']=len(item['parents'])
-        maxdepth=max(maxdepth,item['level'])
-    result=[]
+        item['level'] = len(item['parents'])
+        maxdepth = max(maxdepth, item['level'])
+    result = []
     #result should go from 0 to maxdepth inclusive.
-    for i in range(maxdepth+1):
+    for i in range(maxdepth + 1):
         result.append([])
     for i in polygons:
         result[i['level']].append(i)
@@ -95,7 +95,7 @@ def calculate_immediate_parent(levels):
         for polyline in item:
             for parent in polyline['parents']:
                 if parent in levels[i]:
-                    polyline['immediateparent']=parent
+                    polyline['immediateparent'] = parent
     return levels
 
 def calculate_immediate_children(levels):
@@ -103,10 +103,10 @@ def calculate_immediate_children(levels):
     and adds the key "immediate children" to each of the dictionaries, which gives the
     outermost polyline inside the given polyline"""
     for i, item in enumerate(levels):
-        if i==len(levels)-1:
+        if i == len(levels)-1:
             break
         for polyline in item:
-            polyline['immediatechildren']=[]
+            polyline['immediatechildren'] = []
             for child in polyline['children']:
                 if child in levels[i+1]:
                     polyline['immediatechildren'].append(child)
@@ -114,22 +114,22 @@ def calculate_immediate_children(levels):
 
 def extract_beziers(points):
     """This function takes a list of fontforge points and yields lists that contain single lines or beziers."""
-    i=0
+    i = 0
     while i<len(points)-1:
         # This appends a list of the two consecutive on-curve points with any off-curve points between them.
         if points[i+1].on_curve:
-            added_bezier=points[i:i+2]
-            i=i+1
+            added_bezier = points[i:i+2]
+            i += 1
         else:
-            added_bezier=points[i:i+3]
-            i=i+2
+            added_bezier = points[i:i+3]
+            i += 2
         yield added_bezier
 
 #==============
 #This section is for functions that do extra calculations
 #==============
 
-def extrapolate_midpoints(points, closecurve=True):
+def extrapolate_midpoints(points, closecurve = True):
     """This function takes a list of fontforge points and if two consecutive points are off-curve
     it extrapolates the on-curve point between them. It will also, optionally, add
     the final point to the curve. (This is not always necessary.)"""
@@ -148,44 +148,44 @@ def extrapolate_midpoints(points, closecurve=True):
     # yielded yet. E.g.
     yield points[-1]
 
-def subdivideline(points,n):
+def subdivideline(points, n):
     """This function takes a list of tuples or lists and finds n-1 evenly spaced points (tuples)
     along the line that connects them in between the two points"""
-    if n<=0:
+    if n <= 0:
         raise ValueError("you cannot subdivide into less than one piece")
-    if not type(n)==int:
+    if not type(n) == int:
         raise ValueError("you cannot subdivide into a non-integer number of pieces")
-    i=0
-    while i<=n:
-        result1=(n-i)*points[0].x+i*points[1].x
-        result2=(n-i)*points[0].y+i*points[1].y
-        yield fontforge.point(result1/float(n),result2/float(n), True)
-        i=i+1
+    i = 0
+    while i <= n:
+        result1 = (n-i)*points[0].x + i*points[1].x
+        result2 = (n-i)*points[0].y + i*points[1].y
+        yield fontforge.point(result1/float(n), result2/float(n), True)
+        i += 1
 
-def subdividebezier(points,n):
+def subdividebezier(points, n):
     """This function takes three fontforge points, and yields n-1 evenly spaced
     fontforge points along the bezier defined by those points"""
-    if n<=0:
+    if n <= 0:
         raise ValueError("you cannot subdivide into less than one piece")
-    if not type(n)==int:
+    if not type(n) == int:
         raise ValueError("you cannot subdivide into a non-integer number of pieces")
-    i=0
-    while i<=n:
+    i = 0
+    while i <= n:
         result1 = ((n-i)**2)*points[0].x + 2*i*(n-i)*points[1].x + i*i*points[2].x
         result2 = ((n-i)**2)*points[0].y + 2*i*(n-i)*points[1].y + i*i*points[2].y
-        yield fontforge.point(result1/float(n*n),result2/float(n*n),True)
-        i=i+1
+        yield fontforge.point(result1/float(n*n), result2/float(n*n), True)
+        i += 1
 
 def lowest(points):
-    lowest=points[0]
-    i=0
+    lowest = points[0]
+    i = 0
     while i<len(lowest):
         if lowest[1]>points[i][1]:
-            lowest=points[i]
-        i=i+1
+            lowest = points[i]
+        i += 1
     return (lowest, i)
 
-def closesort3(point, points, epsilon=0.01):
+def closesort3(point, points, epsilon = 0.01):
     if len(points) == 0:
         return []
     def distance(otherpoint):
@@ -199,11 +199,11 @@ def closesort3(point, points, epsilon=0.01):
         del distances_with_points[0]
     return [point for distance, point in distances_with_points]
 
-def twoclosestpoints(point, points, epsilon=0.01):
+def twoclosestpoints(point, points, epsilon = 0.01):
     closepoints = closesort3(point, points, epsilon)
     return closepoints[:2]
 
-def closestpoint(point, points, epsilon=0.01):
+def closestpoint(point, points, epsilon = 0.01):
     twopoints = twoclosestpoints(point, points, epsilon)
     if not twopoints:
         return None
@@ -211,20 +211,20 @@ def closestpoint(point, points, epsilon=0.01):
         return twopoints[0]
 
 """Old algorithm for closestpoint was:
-def closestpoint(point,points):
-    closest=points[0]
-    closestidx=0
-    i=0
+def closestpoint(point, points):
+    closest = points[0]
+    closestidx = 0
+    i = 0
     while i<len(points):
-        newclosest=closer(point,closest,points[i])
+        newclosest = closer(point, closest, points[i])
         if newclosest != closest:
-            closestidx=i
-        closest=newclosest
-        i=i+1
+            closestidx = i
+        closest = newclosest
+        i += 1
     return (closest, closestidx)
 """
 
-def closestpoint_in_same_direction(curpoint, oldpoint, points, epsilon=0.01):
+def closestpoint_in_same_direction(curpoint, oldpoint, points, epsilon = 0.01):
     # Last line segment was oldpoint->curpoint. Find next point in general direction
     for candidate in closesort3(curpoint, points):
         if are_points_equal(candidate, oldpoint, epsilon):
@@ -238,21 +238,21 @@ def closestpoint_in_same_direction(curpoint, oldpoint, points, epsilon=0.01):
     # If we reach here, there were no more points in the right direction
     return None
 
-def pointscloserthan(point,points,radius):
-    closelist=[]
+def pointscloserthan(point, points, radius):
+    closelist = []
     for i in points:
         if are_points_equal(i, point):
             continue # Don't put points in their own neighbor list!
-        if vectorlengthastuple(i,point)<=radius:
+        if vectorlengthastuple(i, point) <= radius:
             closelist.append(i)
     return closelist
 
 def closesort2(points):
-    prevpoint,previdx=lowest(points)
-    point,idx=closestpoint(prevpoint,points)
-    sortedpoints=[prevpoint,point]
+    prevpoint, previdx = lowest(points)
+    point, idx = closestpoint(prevpoint, points)
+    sortedpoints = [prevpoint, point]
     del points[previdx]
-    if idx==previdx:
+    if idx == previdx:
         pass
     elif idx>previdx:
         try:
@@ -262,57 +262,57 @@ def closesort2(points):
             raise
     else:
         del points[idx]
-    k=0
-    numberofpoints=len(points)
+    k = 0
+    numberofpoints = len(points)
     while k<numberofpoints:
-        nextpointapproximatelocation=(2*point[0]-prevpoint[0],2*point[1]-prevpoint[1])
-        closest,closestidx=closestpoint(nextpointapproximatelocation,points)
+        nextpointapproximatelocation = (2*point[0]-prevpoint[0], 2*point[1]-prevpoint[1])
+        closest, closestidx = closestpoint(nextpointapproximatelocation, points)
         sortedpoints.append(closest)
         prevpoint, point = point, closest
         try:
             del points[closestidx]
         except IndexError:
             pass
-        k=k+1
+        k += 1
     return sortedpoints
 
-def closesort(points,length):
-    lowpoint,idx=lowest(points)
-    sortedpoints=[lowpoint]
+def closesort(points, length):
+    lowpoint, idx = lowest(points)
+    sortedpoints = [lowpoint]
     del points[idx]
-    k=0
-    numberofpoints=len(points)
-    closest=lowpoint
+    k = 0
+    numberofpoints = len(points)
+    closest = lowpoint
     while k<numberofpoints:
-        closestnew=closestpoint(closest,points)
-        closest,closestidx=closestnew
+        closestnew = closestpoint(closest, points)
+        closest, closestidx = closestnew
         sortedpoints.append(closest)
         del points[closestidx]
-        k=k+1
+        k += 1
     return sortedpoints
 
-def points_to_all_lines(points,length):
-    lines=[]
+def points_to_all_lines(points, length):
+    lines = []
     print len(points)
-    while points!=[]:
-        point=points[0]
+    while points != []:
+        point = points[0]
         del points[0]
-        closepoints=pointscloserthan(point,points,length)
-        #i=0
+        closepoints = pointscloserthan(point, points, length)
+        #i = 0
         #while i<len(closepoints):
-        #    j=i+1
+        #    j += 1
         #    while j<len(closepoints):
-        #        if closer(closepoints[i],point,closepoints[j])==closepoints[j]:
-        #            extra=further(point,closepoints[i],closepoints[j])
+        #        if closer(closepoints[i], point, closepoints[j]) == closepoints[j]:
+        #            extra = further(point, closepoints[i], closepoints[j])
         #            if len(closepoints)>1:
         #                closepoints.remove(extra)
-        #        j=j+1
-        #    i=i+1
+        #        j += 1
+        #    i += 1
         for i in closepoints:
-            lines.append([point,i])
+            lines.append([point, i])
         if closepoints:
             points.remove(closepoints[0])
-            points=[closepoints[0]]+points
+            points = [closepoints[0]] + points
     return lines
 
 def find_neighbors(points, stroke_width):
@@ -337,13 +337,13 @@ def iscloseto(v, outline):
     """Returns true if vector v is almost identical to any vector in the outline.
     Outline format expected: polyline"""
     #print "iscloseto({}, {})".format(v, outline)
-    return any(are_lines_equal(v, test, epsilon=1.0) for test in pairwise(outline))
+    return any(are_lines_equal(v, test, epsilon = 1.0) for test in pairwise(outline))
 
 def filtertriangles(triangles, outlines):
     """Remove all triangle edges that coincide with any edge of the outline or any holes
     Note that the "outlines" parameter should be a list of the outside polyline and the holes."""
     # Convert triangles to list of 3-element lists of 2-tuples
-    # E.g., [[(p1,p2),(p2,p3),(p3,p1)], [(p4,p5),(p5,p6),(p6,p4)], ...]
+    # E.g., [[(p1,p2), (p2,p3), (p3,p1)], [(p4,p5), (p5,p6), (p6,p4)], ...]
     def isvalid(line):
         #print "isvalid({})".format(line)
         if any(iscloseto(line, outline) for outline in outlines):
@@ -357,7 +357,7 @@ def filtertriangles(triangles, outlines):
 #This section is for functions that actually do things beyond calculations and converting between data types
 #================
 
-def extract_vectors(points, minlength=None):
+def extract_vectors(points, minlength = None):
     """Note: points argument should be a list (or generator) of FF points.
     minlength argument is minimum length that each subdivision should be. If
     not specified, default will be to not subdivide straight lines, and to
@@ -370,30 +370,30 @@ def extract_vectors(points, minlength=None):
             if minlength is None:
                 subdivision = 1
             else:
-                segmentlength = float(vectorlength(candidate[-1],candidate[0]))
-                subdivision=int(math.floor(segmentlength / minlength))
-                subdivision=max(subdivision,1) # Should be at least 1
-            subdivided=list(subdivideline(candidate,subdivision))
-            #subdivided=list(subdivideline(candidate,1))
+                segmentlength = float(vectorlength(candidate[-1], candidate[0]))
+                subdivision = int(math.floor(segmentlength / minlength))
+                subdivision = max(subdivision, 1) # Should be at least 1
+            subdivided = list(subdivideline(candidate, subdivision))
+            #subdivided = list(subdivideline(candidate, 1))
         else:
             # It's a Bezier curve
             if minlength is None:
                 subdivision = find_shallow_subdivision(candidate)
                 #subdivision = 1
             else:
-                segmentlength = float(vectorlength(candidate[-1],candidate[0]))
-                subdivision=int(math.floor(segmentlength / minlength))
-                subdivision=max(subdivision,1) # Should be at least 1
-            subdivided=list(subdividebezier(candidate,subdivision))
+                segmentlength = float(vectorlength(candidate[-1], candidate[0]))
+                subdivision = int(math.floor(segmentlength / minlength))
+                subdivision = max(subdivision, 1) # Should be at least 1
+            subdivided = list(subdividebezier(candidate, subdivision))
         for v in pairwise(subdivided):
             yield v
 
-def find_shallow_subdivision(bezier, tolerance=3):
+def find_shallow_subdivision(bezier, tolerance = 3):
     # Subdivide a Bezier curve into enough segments (min 3, max 25) to form
     # angles of less than 5 degrees.
     for n in range(3, 26, 2):
         subdivided = list(subdividebezier(bezier, n))
-        similar = all(shallow_angle(a,b,c, tolerance) for a, b, c in by_threes(subdivided))
+        similar = all(shallow_angle(a, b, c, tolerance) for a, b, c in by_threes(subdivided))
         if similar:
             #print "{} was enough".format(n)
             break
@@ -402,7 +402,7 @@ def find_shallow_subdivision(bezier, tolerance=3):
             continue
     return n
 
-def calculate_width(polydata, fudgefactor=0.05):
+def calculate_width(polydata, fudgefactor = 0.05):
     polyline = polydata['line']
     children = polydata.get('immediatechildren', [])
     holes = [item['line'] for item in children]
@@ -457,7 +457,7 @@ def calculate_midlines(midpoints, bounding_polygon):
 
     # Structure of midpoints list:
     # [t1, t2, t3, ..., tn] where t looks like [m1, m2, m3] (or 2 or 1 points)
-    # and where each m looks like (x,y)
+    # and where each m looks like (x, y)
     for tri in midpoints:
         for m in tri:
             triangles[m].append(tri)
@@ -482,10 +482,10 @@ def calculate_midlines(midpoints, bounding_polygon):
     # for our line segments. Find out.
 
     def done():
-        numpoints = len(singles)+len(doubles)+len(triples)
+        numpoints = len(singles) + len(doubles) + len(triples)
         return len(connected_points) == numpoints
 
-    def first_not_in(a, b, default=None):
+    def first_not_in(a, b, default = None):
         """Returns the first item from collection a not found in collection b.
         Collection a is a collection of collections (like "singles" and "triples" above),
         and b must support "if item in b" lookup."""
@@ -496,7 +496,7 @@ def calculate_midlines(midpoints, bounding_polygon):
                 return item
         return default
 
-    def get_other_point(coll, p, default=None):
+    def get_other_point(coll, p, default = None):
         """Given a collection of points, return the first point that is not p."""
         for candidate in coll:
             if are_points_equal(candidate, p):
@@ -657,9 +657,9 @@ def calculate_dots(midlines, bounding_polygon, radius, spacing):
     unit_spacing = spacing * radius
     linestrings = []
     # Midlines is in the format [line1, line2, line3] and each line (polyline
-    # really) is in the format [[p1,p2],[p2,p3],[p3,p4]...,[p(n-1),pn]]. We
+    # really) is in the format [[p1,p2], [p2,p3], [p3,p4]..., [p(n-1),pn]]. We
     # want to use shapely.LineString objects, whose constructor wants the
-    # format [p1,p2,p3,...,pn].
+    # format [p1, p2, p3, ..., pn].
     for line in midlines:
         linestrings.append(any_to_linestring(vectorpairs_to_pointlist(line)))
     dots = []
@@ -676,7 +676,7 @@ def calculate_dots(midlines, bounding_polygon, radius, spacing):
             distance += line_spacing
     return dots
 
-def extraction_demo(fname,letter):
+def extraction_demo(fname, letter):
     font = fontforge.open(fname)
     global args
     args.em = font.em
@@ -747,10 +747,10 @@ def extraction_demo(fname,letter):
             dots = list(calculate_dots(midlines, bounding_polygon, args.radius, args.spacing))
             if args.show_dots:
                 for dot in dots:
-                    draw_fat_point(screen, dot, args.em, args.zoom, args.radius, color=blue)
+                    draw_fat_point(screen, dot, args.em, args.zoom, args.radius, color = blue)
             # Structure of midpoints now:
-            # [t1, t2, t3] where t1,t2,t3 are: [m1, m2, m3] or [m1, m2] or [m1]
-            # And m1, m2, m3 are (x,y)
+            # [t1, t2, t3] where t1, t2, t3 are: [m1, m2, m3] or [m1, m2] or [m1]
+            # And m1, m2, m3 are (x, y)
             # Basically, each triangle's vectors have been changed to midpoints,
             # but the structure still remains
             #print len(midpoints), 'midpoints found'
@@ -800,16 +800,16 @@ def extraction_demo(fname,letter):
         polylinecolor = None
     else:
         polylinecolor = blue
-    draw_all(screen, polylines_to_draw, [], alltriangles, emsize=args.em, zoom=args.zoom, polylinecolor=polylinecolor, trianglecolor=trianglecolor)
-    #draw_midlines(screen,[],midpoints)
-    #lines=points_to_all_lines(midpoints, width*1.2)
-    #draw_midlines(screen, lines, midpoints, polylinecolor=green)
+    draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom, polylinecolor = polylinecolor, trianglecolor = trianglecolor)
+    #draw_midlines(screen, [], midpoints)
+    #lines = points_to_all_lines(midpoints, width*1.2)
+    #draw_midlines(screen, lines, midpoints, polylinecolor = green)
     if args.show_lines:
-        draw_midlines(screen, allmidlines, midpoints, emsize=args.em, zoom=args.zoom, polylinecolor=green)
+        draw_midlines(screen, allmidlines, midpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
     wait_for_keypress(args.em, args.zoom)
     return points
 
-def make_triangles(polygon_data, holes=None):
+def make_triangles(polygon_data, holes = None):
     """This function takes a dictionary, and an optional holes parameter
     that determines the holes of a polyline, and tesselates the polyline
     into triangles. This is an intermediate step to calculating the midpoints"""
@@ -858,7 +858,7 @@ def find_straight_lines(ffcontour):
 def estimate_strokewidth(ffcontour):
     pass
 
-DEBUG=True
+DEBUG = True
 def debug(s, *args, **kwargs):
     if not DEBUG:
         return
@@ -872,7 +872,7 @@ def new_extraction_method(fontfilename, lettername):
     emsize = glyph.font.em
     # Data formats we'll use:
     # 1) Lists of Fontforge points forming a closed outline. The lists are not closed. These are "ffoutlines".
-    # 2) Lists of (x,y) tuples (x and y are floats) forming a closed outline. The lists are not closed. These are "polylines".
+    # 2) Lists of (x, y) tuples (x and y are floats) forming a closed outline. The lists are not closed. These are "polylines".
     data = AttrDict()
     data.outlines = []
     for contour in glyph.foreground:
@@ -886,7 +886,7 @@ def new_extraction_method(fontfilename, lettername):
         # Now we should work out the stroke width of the contour. First find any straight lines...
         strokewidth = 1e999
         for a, b in find_straight_lines(outline.complete_contour):
-            distance = vectorlength(a,b)
+            distance = vectorlength(a, b)
             strokewidth = min(distance, strokewidth)
         if strokewidth < 1e999:
             pass
@@ -898,7 +898,7 @@ def new_extraction_method(fontfilename, lettername):
 
 def parse_args():
     "Parse the arguments the user passed in"
-    parser = argparse.ArgumentParser(description="""
+    parser = argparse.ArgumentParser(description = """
         This is a demo of creating a dotted font automatically, given an
         existing font. The demo takes two required parameters, the font file
         to work from and the name (or Unicode codepoint) of the glyph to use
@@ -906,22 +906,22 @@ def parse_args():
         but is probably required in practice if you want to be able to see
         anything. Good values to try are -z 0.5 or -z 0.25 depending on the
         font you've selected.
-        """, epilog="""
+        """, epilog = """
         Example of usage: python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf U+aa75 -z 0.5 -dl
         """)
-    #parser.add_argument('--help', help="Print the help string")
-    parser.add_argument('-v', '--verbose', action="store_true", help="Give more verbose error messages")
-    parser.add_argument("inputfilename", nargs="?", default=DEFAULT_FONT, help="Font file (SFD or TTF format)")
-    parser.add_argument("glyphname", nargs="?", default=DEFAULT_GLYPH, help="Glyph name (or Unicode codepoint in U+89AB format)")
-    parser.add_argument('-z', '--zoom', action="store", type=float, default=1.0, help="Zoom level (default 1.0)")
-    parser.add_argument('-m', '--minstrokewidth', action="store", type=float, default=1, help="The minimum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
-    parser.add_argument('-M', '--maxstrokewidth', action="store", type=float, default=1e100, help="The maximum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
-    parser.add_argument('-t', '--show-triangles', action="store_true", help="Show the glyph triangulation")
-    parser.add_argument('-l', '--show-lines', action="store_true", help="Show the midlines of the glyph")
-    parser.add_argument('-d', '--show-dots', action="store_true", help="Show the dots that make the dotted version")
-    parser.add_argument('-o', '--hide-outline', action="store_true", help="Hide the glyph outline")
-    parser.add_argument('-r', '--radius', action="store", type=float, default=5, help="Radius of dots, in em units (default 5)")
-    parser.add_argument('-s', '--spacing', action="store", type=float, default=3.0, help="Spacing of dots, as a multiple of dot radius (default 3.0 for 300%%)")
+    #parser.add_argument('--help', help = "Print the help string")
+    parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
+    parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Font file (SFD or TTF format)")
+    parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Glyph name (or Unicode codepoint in U+89AB format)")
+    parser.add_argument('-z', '--zoom', action = "store", type = float, default = 1.0, help = "Zoom level (default 1.0)")
+    parser.add_argument('-m', '--minstrokewidth', action = "store", type = float, default = 1, help = "The minimum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
+    parser.add_argument('-M', '--maxstrokewidth', action = "store", type = float, default = 1e100, help = "The maximum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
+    parser.add_argument('-t', '--show-triangles', action = "store_true", help = "Show the glyph triangulation")
+    parser.add_argument('-l', '--show-lines', action = "store_true", help = "Show the midlines of the glyph")
+    parser.add_argument('-d', '--show-dots', action = "store_true", help = "Show the dots that make the dotted version")
+    parser.add_argument('-o', '--hide-outline', action = "store_true", help = "Hide the glyph outline")
+    parser.add_argument('-r', '--radius', action = "store", type = float, default = 5, help = "Radius of dots, in em units (default 5)")
+    parser.add_argument('-s', '--spacing', action = "store", type = float, default = 3.0, help = "Spacing of dots, as a multiple of dot radius (default 3.0 for 300%%)")
     args = parser.parse_args()
     args.svgfilename = args.glyphname + '.svg'
     args.datfilename = args.glyphname + '.dat'
@@ -942,8 +942,8 @@ def main():
     return 0
 
 if __name__ == "__main__":
-    retcode=main()
-    if retcode!=0:
+    retcode = main()
+    if retcode != 0:
         sys.exit(retcode)
 
 #    if not os.path.exists(opts.inputfilenamappend(e):
