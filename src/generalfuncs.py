@@ -175,11 +175,13 @@ def appended(elementlist, element):
     return newlist
 
 def compose(func1, func2):
+    """Given two functions f and g, this returns a function h such that h(x) = f(g(x))"""
     def newfunction(*args, **kwargs):
         return func1(func2(*args, **kwargs))
     return newfunction
 
 comp = functools.partial(compose, operator.not_)
+comp.__doc__ = """Return the complement function of f: whenever f(x) is true, comp(f(x)) is false and vice versa."""
 
 def are_lines_equal(v1, v2, epsilon=1e-9):
     simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
