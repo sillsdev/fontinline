@@ -24,18 +24,10 @@ def by_threes(source):
     for a, b, c in itertools.izip(source, source2, source3):
         yield (a, b, c)
 
-def vectorlengthastuple(point1, point2):
-    """This function takes two tuple-style points, and returns the distance between them"""
-    xdiff = float(point1[0] - point2[0])
-    ydiff = float(point1[1] - point2[1])
-    squaredlength = xdiff**2 + ydiff**2
-    length = squaredlength**0.5
-    return length
-
 def vectorlength(point1, point2):
-    """This function takes two fontforge points, and returns the distance between them"""
-    xdiff = point1.x - point2.x
-    ydiff = point1.y - point2.y
+    """This function takes two points in any format, and returns the distance between them"""
+    xdiff = ux(point1) - ux(point2)
+    ydiff = uy(point1) - uy(point2)
     squaredlength = xdiff**2 + ydiff**2
     length = squaredlength**0.5
     return length
@@ -225,13 +217,13 @@ def test(pred, a, b):
         return b
 
 def closertest(point, point2, point3):
-    return vectorlengthastuple(point1, point2) < vectorlengthastuple(point1, point3)
+    return vectorlength(point1, point2) < vectorlength(point1, point3)
 
 def closer(point1, point2, point3):
     return test(closertest(point1, point2, point3), point2, point3)
 
 def closerish(point1, point2, point3, fudge):
-    return test(vectorlengthastuple(point1, point2) < fudge * vectorlengthastuple(point1, point3), point2, point3)
+    return test(vectorlength(point1, point2) < fudge * vectorlength(point1, point3), point2, point3)
 
 def further(point1, point2, point3):
     return test(comp(closertest)(point1, point2, point3), point2, point3)

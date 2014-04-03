@@ -30,7 +30,7 @@ from visualization import (
 )
 from generalfuncs import (
     pairwise, by_threes, flatten,
-    vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
+    vectorlength, are_points_equal, are_lines_equal,
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
@@ -189,7 +189,7 @@ def closesort3(point, points, epsilon = 0.01):
     if len(points) == 0:
         return []
     def distance(otherpoint):
-        return vectorlengthastuple(point, otherpoint)
+        return vectorlength(point, otherpoint)
     distances = map(distance, points)
     distances_with_points = list(zip(distances, points))
     distances_with_points.sort()
@@ -243,7 +243,7 @@ def pointscloserthan(point, points, radius):
     for i in points:
         if are_points_equal(i, point):
             continue # Don't put points in their own neighbor list!
-        if vectorlengthastuple(i, point) <= radius:
+        if vectorlength(i, point) <= radius:
             closelist.append(i)
     return closelist
 
