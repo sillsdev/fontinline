@@ -87,7 +87,7 @@ def levels(polygons):
     return result
 
 
-def calculateimmediateparent(levels):
+def calculate_immediate_parent(levels):
     """This function takes a list of lists of dictionaries given by the levels function
     and adds the key "immediate parents" to each of the dictionaries, which gives the
     innermost polyline containing the given polyline"""
@@ -98,7 +98,7 @@ def calculateimmediateparent(levels):
                     polyline['immediateparent']=parent
     return levels
 
-def calculateimmediatechildren(levels):
+def calculate_immediate_children(levels):
     """This function takes a list of lists of dictionaries given by the levels function
     and adds the key "immediate children" to each of the dictionaries, which gives the
     outermost polyline inside the given polyline"""
@@ -112,7 +112,7 @@ def calculateimmediatechildren(levels):
                     polyline['immediatechildren'].append(child)
     return levels
 
-def extractbeziers(points):
+def extract_beziers(points):
     """This function takes a list of fontforge points and yields lists that contain single lines or beziers."""
     i=0
     while i<len(points)-1:
@@ -357,14 +357,14 @@ def filtertriangles(triangles, outlines):
 #This section is for functions that actually do things beyond calculations and converting between data types
 #================
 
-def extractvectors(points, minlength=None):
+def extract_vectors(points, minlength=None):
     """Note: points argument should be a list (or generator) of FF points.
     minlength argument is minimum length that each subdivision should be. If
     not specified, default will be to not subdivide straight lines, and to
     subdivide Bezier curves until the angle change of each segment is less
     than N degrees, where N is currently 3 but might change in the future."""
     points = list(points)
-    for candidate in extractbeziers(points):
+    for candidate in extract_beziers(points):
         if len(candidate) == 2:
             # It's a vector
             if minlength is None:
@@ -425,11 +425,11 @@ def recalculate_polys(polydata):
         holes = polydata.get('immediatechildren', [])
         for hole_data in holes:
             hole_contour = list(extrapolate_midpoints(list(hole_data['contour'])))
-            hole_vectors = extractvectors(hole_contour, width)
+            hole_vectors = extract_vectors(hole_contour, width)
             hole_data['line'] = vectorpairs_to_pointlist(hole_vectors)
             hole_data['poly'] = any_to_polygon(hole_data['line'], [])
         real_contour = list(extrapolate_midpoints(list(polydata['contour'])))
-        real_vectors = extractvectors(real_contour, width)
+        real_vectors = extract_vectors(real_contour, width)
         real_hole_contours = [data['contour'] for data in holes]
         real_polyline = vectorpairs_to_pointlist(real_vectors)
 
@@ -704,12 +704,12 @@ def extraction_demo(fname,letter):
     approx_outlines = []
     for contour in layer:
         points = extrapolate_midpoints(list(contour))
-        approx_vectors = extractvectors(points)
+        approx_vectors = extract_vectors(points)
         linestring = vectorpairs_to_linestring(approx_vectors)
         approx_outlines.append((linestring, contour))
     approx_parent_data = calculate_parents(approx_outlines)
     approx_level_data = levels(approx_parent_data)
-    approx_level_data = calculateimmediatechildren(approx_level_data)
+    approx_level_data = calculate_immediate_children(approx_level_data)
     screen = setup_screen()
     args.screen = screen
     for level in approx_level_data[::2]:
