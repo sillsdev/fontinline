@@ -62,18 +62,6 @@ def any_to_polygon(outside, holes):
     holes = map(any_to_polyline, holes)
     return Polygon(outside, holes)
 
-def ff_to_tuple(ffpointlist):
-    """This function takes a list of fontforge points and turns it into a list of tuples.
-    This function needs to be updated to retain the oncurve-offcurve information"""
-    # TODO: Try to eliminate the need for this function
-    try:
-        return [(p.x, p.y) for p in ffpointlist]
-    except AttributeError:
-        return ffpointlist  # Because this was probably already a list of tuples
-    except TypeError:
-        # This would be TypeError: 'LineString' object is not iterable
-        return ffpointlist.coords
-
 def convert_polyline_to_polytri_version(polyline):
     """Converts points to p2t points that poly2tri can deal with
     This function accepts tuples or fontforge points"""

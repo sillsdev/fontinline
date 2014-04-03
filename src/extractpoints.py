@@ -20,7 +20,7 @@ import p2t
 sys.path.remove('../../python-poly2tri')
 
 from dataconvert import (
-    any_to_linestring, any_to_polygon, any_to_polyline, any_to_closedpolyline, ff_to_tuple,
+    any_to_linestring, any_to_polygon, any_to_polyline, any_to_closedpolyline,
     convert_polyline_to_polytri_version,
     triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring,
 )
@@ -58,7 +58,7 @@ def calculate_parents(polyline_tuples):
     polygons = []
     for line, orig_contour in polyline_tuples:
         d = dict()
-        d['poly'] = Polygon(ff_to_tuple(line))
+        d['poly'] = Polygon(line)
         d['line'] = line
         d['contour'] = orig_contour
         d['children'] = []
