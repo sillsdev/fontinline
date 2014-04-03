@@ -273,7 +273,7 @@ def recalculate_polys(polydata):
         polydata['line'] = real_polyline
         polydata['poly'] = any_to_polygon(real_polyline, real_hole_contours)
 
-def calculate_midlines(midpoints, bounding_polygon):
+def calculate_midlines(midpoints):
     triangles = collections.defaultdict(list)  # Keys are midpoints
     singles = []
     doubles = []
@@ -475,8 +475,7 @@ def calculate_midlines(midpoints, bounding_polygon):
 
     return drawn_lines
 
-def calculate_dots(midlines, bounding_polygon, radius, spacing):
-    # TODO: We may not need the bounding_polygon param. Remove it if unneeded.
+def calculate_dots(midlines, radius, spacing):
     # Radius is in em units, same as the midlines lengths; spacing is given as
     # a multiple of radius.
     unit_spacing = spacing * radius
@@ -557,7 +556,6 @@ def extraction_demo(fname, letter):
             for line in pairwise(outside_polyline):
                 m = averagepoint_as_tuple(line[0], line[1])
             holes = map(any_to_closedpolyline, [child['line'] for child in children])
-            bounding_polygon = any_to_polygon(outside_polyline, holes)
             for hole in holes:
                 for line in pairwise(hole):
                     m = averagepoint_as_tuple(line[0], line[1])
@@ -565,8 +563,8 @@ def extraction_demo(fname, letter):
             outlines_to_filter = [outside_polyline] + holes
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
-            midlines = list(calculate_midlines(midpoints, bounding_polygon))
-            dots = list(calculate_dots(midlines, bounding_polygon, args.radius, args.spacing))
+            midlines = list(calculate_midlines(midpoints))
+            dots = list(calculate_dots(midlines, args.radius, args.spacing))
             if args.show_dots:
                 for dot in dots:
                     draw_fat_point(screen, dot, args.em, args.zoom, args.radius, color = blue)
