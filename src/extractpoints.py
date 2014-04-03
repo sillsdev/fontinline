@@ -224,20 +224,6 @@ def closestpoint(point, points):
     return (closest, closestidx)
 """
 
-def closestpoint_in_same_direction(curpoint, oldpoint, points, epsilon = 0.01):
-    # Last line segment was oldpoint->curpoint. Find next point in general direction
-    for candidate in closesort3(curpoint, points):
-        if are_points_equal(candidate, oldpoint, epsilon):
-            # Don't retrace our steps!
-            continue
-        # Keep going until we find one in the right direction
-        if similar_direction(oldpoint, curpoint, candidate):
-            return candidate
-        else:
-            continue
-    # If we reach here, there were no more points in the right direction
-    return None
-
 def pointscloserthan(point, points, radius):
     closelist = []
     for i in points:
