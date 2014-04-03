@@ -783,9 +783,6 @@ def find_straight_lines(ffcontour):
         if ffcontour[0].on_curve and ffcontour[-1].on_curve:
             yield ffcontour[-1], ffcontour[0]
 
-def estimate_strokewidth(ffcontour):
-    pass
-
 DEBUG = True
 def debug(s, *args, **kwargs):
     if not DEBUG:
@@ -794,35 +791,6 @@ def debug(s, *args, **kwargs):
         print s
     else:
         print s.format(*args, **kwargs)
-
-def new_extraction_method(fontfilename, lettername):
-    glyph = get_glyph(fontfilename, lettername)
-    emsize = glyph.font.em
-    # Data formats we'll use:
-    # 1) Lists of Fontforge points forming a closed outline. The lists are not closed. These are "ffoutlines".
-    # 2) Lists of (x, y) tuples (x and y are floats) forming a closed outline. The lists are not closed. These are "polylines".
-    data = AttrDict()
-    data.outlines = []
-    for contour in glyph.foreground:
-        outline = AttrDict()
-        outline.contour = contour
-        # Many contours will have two or more off-curve points in a row. The
-        # TrueType spec allows for this; the implied on-curve point is the point
-        # precisely between the two off-curve points. extrapolate_midpoints() will
-        # give us an outline with on-curve points in the right places.
-        outline.complete_contour = list(extrapolate_midpoints(list(contour), False))
-        # Now we should work out the stroke width of the contour. First find any straight lines...
-        strokewidth = 1e999
-        for a, b in find_straight_lines(outline.complete_contour):
-            distance = vectorlength(a, b)
-            strokewidth = min(distance, strokewidth)
-        if strokewidth < 1e999:
-            pass
-        else:
-            pass
-        outline.polyline = any_to_polyline(outline.complete_contour)
-        outline.linestring = any_to_linestring(outline.complete_contour)
-        data.outlines.append(outline)
 
 def parse_args():
     "Parse the arguments the user passed in"
