@@ -32,7 +32,7 @@ from generalfuncs import (
     pairwise, by_threes, flatten,
     vectorlengthastuple, vectorlength, are_points_equal, are_lines_equal,
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
-    comp, itermap, iterfilter, iterfilter_stopatvectors, itermap_stopatvectors,
+    comp, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
     center_of_triangle,
 )

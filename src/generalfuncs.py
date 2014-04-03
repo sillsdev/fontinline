@@ -174,51 +174,6 @@ def appended(elementlist, element):
     newlist.append(element)
     return newlist
 
-def k(anything):
-    def f(blah):
-        return anything
-    return f
-
-def iterfunc(func, startvalue):
-    """This function takes a function and a start value and
-    returns a function that will go through all elements of
-    the list and the nested lists, and for each element such
-    that the predicate is true, the function will modify the
-    result using func and function(element)."""
-    def identity(anything):
-        return anything
-
-    alwaysTrue = k(True)
-    alwaysFalse = k(False)
-
-    def newfunction(nestediterable, pred = alwaysTrue, function = identity, stop = alwaysFalse):
-        result=startvalue
-        for i in nestediterable:
-            if stop(i):
-                if pred(i):
-                    result = func(result, function(i))
-                continue
-            try:
-                iterable = iter(i)
-            except TypeError:
-                if pred(i):
-                    print function(i)
-                    result = func(result, function(i))
-                    print result
-            else:
-                result = func(result, newfunction(iterable, pred, function))
-        return result
-
-    def new2(nestediterable, predicate, stop = alwaysFalse):
-        return newfunction(nestediterable, pred = predicate, stop = stop)
-
-    def new3(nestediterable, usedfunction, stop = alwaysFalse):
-        return newfunction(nestediterable, function = usedfunction, stop = stop)
-    return newfunction, new2, new3
-
-iterany = iterfunc(operator.or_, True)
-iterfiltermap, iterfilter, itermap = iterfunc(appended, [])
-
 def compose(func1, func2):
     def newfunction(*args, **kwargs):
         return func1(func2(*args, **kwargs))
