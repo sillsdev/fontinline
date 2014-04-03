@@ -613,30 +613,6 @@ def make_triangles(polygon_data, holes = None):
     triangles.extend(cdt.triangulate())
     return triangles
 
-def get_glyph(fname, letter):
-    font = fontforge.open(fname)
-    if isinstance(letter, int):
-        codepoint = letter
-    elif letter.startswith('U+'):
-        codepoint = int(letter[2:], 16)
-    else:
-        codepoint = letter
-    glyph = font[codepoint]
-    return glyph
-
-def find_straight_lines(ffcontour):
-    for a, b in pairwise(ffcontour):
-        if a.on_curve and b.on_curve:
-            yield a, b
-    try:
-        ffcontour[0]
-    except IndexError:
-        # Can't check first & last point, so just give up
-        return
-    else:
-        if ffcontour[0].on_curve and ffcontour[-1].on_curve:
-            yield ffcontour[-1], ffcontour[0]
-
 DEBUG = True
 def debug(s, *args, **kwargs):
     if not DEBUG:
