@@ -40,9 +40,9 @@ from generalfuncs import (
 DEFAULT_FONT = '/usr/share/fonts/truetype/padauk/Padauk.ttf'
 DEFAULT_GLYPH = 'u1021'
 
-#==============
-#This section is for functions that calculate and return a different data type
-#==============
+# ==============
+# This section is for functions that calculate and return a different data type
+# ==============
 
 def calculate_parents(polyline_tuples):
     """This function takes a list of fontforge points and turns it into a list of dictionaries.
@@ -79,7 +79,7 @@ def levels(polygons):
         item['level'] = len(item['parents'])
         maxdepth = max(maxdepth, item['level'])
     result = []
-    #result should go from 0 to maxdepth inclusive.
+    # result should go from 0 to maxdepth inclusive.
     for i in range(maxdepth + 1):
         result.append([])
     for i in polygons:
@@ -125,9 +125,9 @@ def extract_beziers(points):
             i += 2
         yield added_bezier
 
-#==============
-#This section is for functions that do extra calculations
-#==============
+# ==============
+# This section is for functions that do extra calculations
+# ==============
 
 def extrapolate_midpoints(points, closecurve = True):
     """This function takes a list of fontforge points and if two consecutive points are off-curve
@@ -284,16 +284,6 @@ def points_to_all_lines(points, length):
         point = points[0]
         del points[0]
         closepoints = pointscloserthan(point, points, length)
-        #i = 0
-        #while i<len(closepoints):
-        #    j += 1
-        #    while j<len(closepoints):
-        #        if closer(closepoints[i], point, closepoints[j]) == closepoints[j]:
-        #            extra = further(point, closepoints[i], closepoints[j])
-        #            if len(closepoints)>1:
-        #                closepoints.remove(extra)
-        #        j += 1
-        #    i += 1
         for i in closepoints:
             lines.append([point, i])
         if closepoints:
@@ -322,7 +312,6 @@ def is_within(line, polygon):
 def iscloseto(v, outline):
     """Returns true if vector v is almost identical to any vector in the outline.
     Outline format expected: polyline"""
-    #print "iscloseto({}, {})".format(v, outline)
     return any(are_lines_equal(v, test, epsilon = 1.0) for test in pairwise(outline))
 
 def filtertriangles(triangles, outlines):
@@ -331,17 +320,14 @@ def filtertriangles(triangles, outlines):
     # Convert triangles to list of 3-element lists of 2-tuples
     # E.g., [[(p1,p2), (p2,p3), (p3,p1)], [(p4,p5), (p5,p6), (p6,p4)], ...]
     def isvalid(line):
-        #print "isvalid({})".format(line)
         if any(iscloseto(line, outline) for outline in outlines):
             m = averagepoint_as_tuple(line[0], line[1])
-            #draw_fat_point(args.screen, m, args.em, args.zoom, red)
         return not any(iscloseto(line, outline) for outline in outlines)
-    #if len(triangles) <= 2000:
     return iterfilter_stopatvectors(isvalid, triangles)
 
-#================
-#This section is for functions that actually do things beyond calculations and converting between data types
-#================
+# ================
+# This section is for functions that actually do things beyond calculations and converting between data types
+# ================
 
 def extract_vectors(points, minlength = None):
     """Note: points argument should be a list (or generator) of FF points.
@@ -381,10 +367,8 @@ def find_shallow_subdivision(bezier, tolerance = 3):
         subdivided = list(subdividebezier(bezier, n))
         similar = all(shallow_angle(a, b, c, tolerance) for a, b, c in by_threes(subdivided))
         if similar:
-            #print "{} was enough".format(n)
             break
         else:
-            #print "{} was not enough".format(n)
             continue
     return n
 
@@ -565,7 +549,6 @@ def calculate_midlines(midpoints, bounding_polygon):
                 finished_points.append(curpt)
             else:
                 finished_points.append(curpt)
-            #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
             ac = arity(curpt)
             nextpt = next_point(curpt)
@@ -617,7 +600,6 @@ def calculate_midlines(midpoints, bounding_polygon):
                 finished_points.append(curpt)
             else:
                 finished_points.append(curpt)
-            #prevpt = curpt  # Needed? FIXME: Remove if not needed
             curpt = nextpt
             start_from = curpt
             ac = arity(curpt)
@@ -626,9 +608,6 @@ def calculate_midlines(midpoints, bounding_polygon):
                 break
         drawn_lines.append(current_line)
         current_line = []
-
-    #for t in triples:
-        #draw_fat_point(args.screen, center_of_triangle(t), args.em, args.zoom, green)
 
     # One more thing we need to do: any 4-arity points need to have a line
     # drawn between both of their centerpoints. See U+aa76 in Padauk font for
@@ -716,15 +695,12 @@ def extraction_demo(fname, letter):
             outside_polyline = any_to_polyline(real_polyline)
             outside_polyline.append(outside_polyline[0])  # Close it
             for line in pairwise(outside_polyline):
-                #print line
                 m = averagepoint_as_tuple(line[0], line[1])
-                #draw_fat_point(args.screen, m, args.em, args.zoom, red)
             holes = map(any_to_closedpolyline, [child['line'] for child in children])
             bounding_polygon = any_to_polygon(outside_polyline, holes)
             for hole in holes:
                 for line in pairwise(hole):
                     m = averagepoint_as_tuple(line[0], line[1])
-                    #draw_fat_point(args.screen, m, args.em, args.zoom, red)
                 polylines_to_draw.append(hole)
             outlines_to_filter = [outside_polyline] + holes
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
@@ -739,43 +715,12 @@ def extraction_demo(fname, letter):
             # And m1, m2, m3 are (x, y)
             # Basically, each triangle's vectors have been changed to midpoints,
             # but the structure still remains
-            #print len(midpoints), 'midpoints found'
             for t in midpoints:
                 if len(t) == 1:
                     for m in t:
                         pass
             allmidpoints.extend(midpoints)
             allmidlines.extend(map(vectorpairs_to_pointlist, midlines))
-
-            # Step 1: Find neighbors (points within distance X, about half the stroke width)
-            """ Comment out this block -- we're redoing it with triangle-based algorithm
-            neighbor_distance = width * 1.5
-            all_neighbors = find_neighbors(midpoints, neighbor_distance)
-
-            # Step 2: Any points with all neighbors in the "same direction" are endpoints
-            # Note that "same direction" is a fuzzy concept: how wide of an arc needs
-            # to contain all the neighbors before they count as "same direction"?
-            # 60 degrees? 120 degrees? After all, several of its neighbors may
-            # be along a curve...
-            def is_endpoint(point, neighborlist):
-                if len(neighborlist) == 1:
-                    return True
-                return all(similar_direction(point, a, b, 60) for a, b in pairwise(neighborlist))
-            endpoints = [point for (point, neighbors) in all_neighbors.items() if is_endpoint(point, neighbors)]
-            for p in endpoints:
-                debug('Endpoint: {}', p)
-                draw_fat_point(screen, p, args.em, args.zoom, green)
-                pass
-            #print "Identified endpoints:"
-            #print endpoints
-
-            # Calculate the midlines, then append them
-            midlines = vectorpairs_to_pointlist(calculate_midlines(midpoints, endpoints, bounding_polygon))
-            print "Calculated these midlines:"
-            for m in midlines:
-                print m
-            allmidlines.append(midlines)
-            """
             #break  # Uncomment this to draw only the first "world"
 
     if args.show_triangles:
@@ -787,9 +732,6 @@ def extraction_demo(fname, letter):
     else:
         polylinecolor = blue
     draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom, polylinecolor = polylinecolor, trianglecolor = trianglecolor)
-    #draw_midlines(screen, [], midpoints)
-    #lines = points_to_all_lines(midpoints, width*1.2)
-    #draw_midlines(screen, lines, midpoints, polylinecolor = green)
     if args.show_lines:
         draw_midlines(screen, allmidlines, midpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
     wait_for_keypress(args.em, args.zoom)
@@ -895,7 +837,6 @@ def parse_args():
         """, epilog = """
         Example of usage: python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf U+aa75 -z 0.5 -dl
         """)
-    #parser.add_argument('--help', help = "Print the help string")
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
     parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Font file (SFD or TTF format)")
     parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Glyph name (or Unicode codepoint in U+89AB format)")
@@ -923,7 +864,6 @@ def main():
     a sanity check to make sure everything works properly."""
     global args
     args = parse_args()
-    #new_extraction_method(args.inputfilename, args.glyphname)
     extraction_demo(args.inputfilename, args.glyphname)
     return 0
 
@@ -931,10 +871,3 @@ if __name__ == "__main__":
     retcode = main()
     if retcode != 0:
         sys.exit(retcode)
-
-#    if not os.path.exists(opts.inputfilenamappend(e):
-#        print "File {} not found or not accessible".format(opts.inputfilename)
-#        sys.exit(2)
-#    font = fontforge.open(opts.inputfilename)
-#    font[opts.glyphname].export(opts.exportname)
-#    font.close()

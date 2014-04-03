@@ -76,7 +76,6 @@ def shallow_angle(a, b, c, tolerance = 30):
     diff = abs(angle_ab - angle_bc)
     while diff > 180:
         diff -= 360
-    #print "Angle", abs(diff), "and tolerance", tolerance, "=", (abs(diff) < tolerance)
     return abs(diff) < tolerance
 
 def distance_to_line(p, l):
@@ -178,8 +177,6 @@ comp.__doc__ = """Return the complement function of f: whenever f(x) is true, co
 def are_lines_equal(v1, v2, epsilon = 1e-9):
     simple_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, v2))
     reversed_equality = all(are_points_equal(p1, p2, epsilon) for p1, p2 in zip(v1, reversed(v2)))
-    #reversed_equality = False
-    #simple_equality = False
     return (simple_equality or reversed_equality)
 
 def averagepoint_as_ffpoint(point1, point2):
