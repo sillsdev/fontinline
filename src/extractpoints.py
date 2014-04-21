@@ -500,8 +500,20 @@ def calculate_dots(midlines, radius, spacing):
             distance += line_spacing
     return dots
 
+def silent_fontopen(fname):
+    # Fontforge opens fonts in C code, so we can't redirect Python's sys.stderr
+    # to /dev/null and hope that that will work. We need to redirect the
+    # OS-level file descriptor for stderr (2) to /dev/null instead.
+    # Method from http://stackoverflow.com/a/8805144/2314532
+    origstderr = os.dup(2)
+    devnull = os.open('/dev/null', os.O_WRONLY)
+    os.dup2(devnull, 2)
+    fontobj = fontforge.open(fname)
+    os.dup2(origstderr, 2)
+    return fontobj
+
 def extraction_demo(fname, letter):
-    font = fontforge.open(fname)
+    font = silent_fontopen(fname)
     global args
     args.em = font.em
     if isinstance(letter, int):
