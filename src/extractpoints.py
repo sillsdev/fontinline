@@ -510,6 +510,8 @@ def silent_fontopen(fname):
     os.dup2(devnull, 2)
     fontobj = fontforge.open(fname)
     os.dup2(origstderr, 2)
+    os.close(devnull)
+    os.close(origstderr)
     return fontobj
 
 def extraction_demo(fname, letter):
