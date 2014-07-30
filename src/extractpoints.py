@@ -34,7 +34,7 @@ from generalfuncs import (
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
-    center_of_triangle,
+    center_of_triangle, circle_at,
 )
 
 DEFAULT_FONT = '/usr/share/fonts/truetype/padauk/Padauk.ttf'
@@ -254,7 +254,6 @@ def calculate_width(polydata, fudgefactor = 0.05):
     width = max(width, args.minstrokewidth)
     width = min(width, args.maxstrokewidth)
     polydata['width'] = width
-    print width
     return width
 
 def recalculate_polys(polydata):
@@ -526,8 +525,17 @@ def extraction_demo(fname, letter):
         codepoint = letter
     glyph = font[codepoint]
     glyph.unlinkRef()
+    new_font = fontforge.font()
+    new_glyph = new_font.createChar(glyph.encoding)
+    copy_glyph(glyph, new_glyph)
+    new_font.generate('output.ttf') # TODO: Make this a configurable parameter
+    dots = extract_dots(glyph)
+    print "{} dots found".format(len(dots))
+    wait_for_keypress(args.em, args.zoom)
+
+def extract_dots(glyph, show_glyph=True):
+    global args
     layer = glyph.foreground
-    print "{} has {} layer{}".format(args.glyphname, len(layer), ('' if len(layer) == 1 else 's'))
     polylines = []
     polylines_to_draw = []
     alltriangles = []
@@ -579,7 +587,7 @@ def extraction_demo(fname, letter):
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
             midlines = list(calculate_midlines(midpoints))
             dots = list(calculate_dots(midlines, args.radius, args.spacing))
-            if args.show_dots:
+            if show_glyph and args.show_dots:
                 for dot in dots:
                     draw_fat_point(screen, dot, args.em, args.zoom, args.radius, color = blue)
             # Structure of midpoints now:
@@ -595,13 +603,23 @@ def extraction_demo(fname, letter):
             allmidlines.extend(map(vectorpairs_to_pointlist, midlines))
             #break  # Uncomment this to draw only the first "world"
 
-    draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom,
-        polylinecolor = (None if args.hide_outline else blue),
-        trianglecolor = (red if args.show_triangles else None))
+    if show_glyph:
+        draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom,
+            polylinecolor = (None if args.hide_outline else blue),
+            trianglecolor = (red if args.show_triangles else None))
     if args.show_lines:
         draw_midlines(screen, allmidlines, midpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
-    wait_for_keypress(args.em, args.zoom)
-    return points
+    return dots
+
+def copy_glyph(orig_glyph, new_glyph):
+    # (new_glyph was created with font.createChar(orig_glyph.encoding)
+    print "Copying glyph at U+{:04X}".format(orig_glyph.encoding)  # TODO: move this line to a different function
+    new_glyph.glyphname = orig_glyph.glyphname
+    dots = extract_dots(orig_glyph, False)  # TODO: Refactor extract_dots to remove drawing code or make it optional
+    for dot in dots:
+        contour = circle_at(dot, size=args.radius)
+        new_glyph.foreground += contour
+    return new_glyph  # Probably not needed as the font now contains it
 
 def make_triangles(polygon_data, holes = None):
     """This function takes a dictionary, and an optional holes parameter

@@ -8,6 +8,7 @@ operations (like averagepoint or pairwise) go in this library.
 import itertools
 import functools
 import fontforge
+import psMat
 import math
 import operator
 
@@ -47,6 +48,20 @@ def uy(p):
     except AttributeError:
         result = p[1]
     return float(result)
+
+def circle_at(center, size=1.0):
+    """Create a Fontforge contour, in the shape of a circle, centered at
+    the given point. Second parameter, optional, is the radius of the circle
+    in em units. If not specified, the radius will default to 1."""
+    x = ux(center)
+    y = uy(center)
+    # psMat is a fontforge module to help in creating transformation matrices
+    matrix = psMat.translate(x,y)
+    if size != 1.0:
+        matrix = psMat.compose(psMat.scale(size), matrix)
+    unitcircle = fontforge.unitShape(0)
+    unitcircle.transform(matrix)
+    return unitcircle
 
 def angle(point1, point2):
     """Calculate the angle (in degrees) of the line between point1 and point2.
