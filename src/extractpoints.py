@@ -532,7 +532,11 @@ def create_dotted_font(fname):
         glyph.unlinkRef()
         new_glyph = new_font.createChar(glyph.encoding)
         copy_glyph(glyph, new_glyph)
-    new_font.generate(args.output)
+    font_type = args.output.lower().rsplit('.', 1)[-1]
+    if font_type == 'sfd':
+        new_font.save(args.output)
+    else:
+        new_font.generate(args.output)
     print "Dotted font created as", args.output
 
 def extraction_demo(fname, letter):
@@ -547,10 +551,6 @@ def extraction_demo(fname, letter):
         codepoint = letter
     glyph = font[codepoint]
     glyph.unlinkRef()
-    new_font = fontforge.font()
-    new_glyph = new_font.createChar(glyph.encoding)
-    copy_glyph(glyph, new_glyph)
-    new_font.generate(args.output)
     dots = extract_dots(glyph)
     print "{} dots found".format(len(dots))
     wait_for_keypress(args.em, args.zoom)
