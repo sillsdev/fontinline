@@ -519,16 +519,14 @@ def create_dotted_font(fname):
     args.em = input_font.em
     new_font = fontforge.font()
     for glyphname in input_font:
-        print "Processing glyph named", glyphname
         if glyphname in ('.notdef', '.null'): continue
         glyph = input_font[glyphname]
+        print "Processing glyph named {} at codepoint U+{:04X}".format(glyphname, glyph.encoding)
         glyph.unlinkRef()
         new_glyph = new_font.createChar(glyph.encoding)
         copy_glyph(glyph, new_glyph)
     new_font.generate(args.output)
-    dots = extract_dots(glyph)
-    print "{} dots found".format(len(dots))
-    wait_for_keypress(args.em, args.zoom)
+    print "Dotted font created as", args.output
 
 def extraction_demo(fname, letter):
     font = silent_fontopen(fname)
@@ -631,7 +629,6 @@ def extract_dots(glyph, show_glyph=True):
 
 def copy_glyph(orig_glyph, new_glyph):
     # (new_glyph was created with font.createChar(orig_glyph.encoding)
-    print "Copying glyph at U+{:04X}".format(orig_glyph.encoding)  # TODO: move this line to a different function
     new_glyph.glyphname = orig_glyph.glyphname
     dots = extract_dots(orig_glyph, False)  # TODO: Refactor extract_dots to remove drawing code or make it optional
     for dot in dots:
