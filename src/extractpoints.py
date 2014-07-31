@@ -521,7 +521,7 @@ def create_dotted_font(fname):
     for glyphname in input_font:
         if glyphname in ('.notdef', '.null'): continue
         glyph = input_font[glyphname]
-        print "Processing glyph named {} at codepoint U+{:04X}".format(glyphname, glyph.encoding)
+        print "Processing glyph at codepoint U+{:04X} named {}".format(glyph.encoding, glyphname)
         glyph.unlinkRef()
         new_glyph = new_font.createChar(glyph.encoding)
         copy_glyph(glyph, new_glyph)
@@ -572,8 +572,11 @@ def extract_dots(glyph, show_glyph=True):
     approx_parent_data = calculate_parents(approx_outlines)
     approx_level_data = levels(approx_parent_data)
     approx_level_data = calculate_immediate_children(approx_level_data)
-    screen = setup_screen()
-    args.screen = screen
+    if show_glyph:
+        screen = setup_screen()
+        args.screen = screen
+    else:
+        screen = None
     for level in approx_level_data[::2]:
         for polydata in level:
             width = calculate_width(polydata)
