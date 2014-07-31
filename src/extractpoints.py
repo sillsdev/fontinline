@@ -644,6 +644,10 @@ def copy_glyph(orig_glyph, new_glyph):
     for dot in dots:
         contour = circle_at(dot, size=args.radius)
         new_glyph.foreground += contour
+    for anchor in orig_glyph.anchorPoints:
+        new_glyph.addAnchorPoint(*anchor)
+    # Or can we just do this?
+    # new_glyph.anchorPoints = orig_glyph.anchorPoints
     return new_glyph  # Probably not needed as the font now contains it
 
 def make_triangles(polygon_data, holes = None):
