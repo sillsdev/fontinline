@@ -513,11 +513,18 @@ def silent_fontopen(fname):
     os.close(origstderr)
     return fontobj
 
+features_to_copy = """
+    ascent descent em encoding upos uwidth weight
+""".split()   # TODO: Find out if any other font features need to be copied
+
 def create_dotted_font(fname):
     input_font = silent_fontopen(fname)
     global args
     args.em = input_font.em
     new_font = fontforge.font()
+    for feature in features_to_copy:
+        value = getattr(input_font, feature)
+        setattr(new_font, feature, value)
     for glyphname in input_font:
         if glyphname in ('.notdef', '.null'): continue
         glyph = input_font[glyphname]
