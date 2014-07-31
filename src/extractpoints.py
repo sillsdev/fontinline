@@ -605,7 +605,7 @@ def extract_dots(glyph, show_glyph=True):
 
     if show_glyph:
         draw_all(screen, polylines_to_draw, [], alltriangles, emsize = args.em, zoom = args.zoom,
-            polylinecolor = (None if args.hide_outline else blue),
+            polylinecolor = (blue if args.show_glyph else None),
             trianglecolor = (red if args.show_triangles else None))
     if args.show_lines:
         draw_midlines(screen, allmidlines, midpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
@@ -674,7 +674,7 @@ def parse_args():
     parser.add_argument('-t', '--show-triangles', action = "store_true", help = "Show the glyph triangulation")
     parser.add_argument('-l', '--show-lines', action = "store_true", help = "Show the midlines of the glyph")
     parser.add_argument('-d', '--show-dots', action = "store_true", help = "Show the dots that make the dotted version")
-    parser.add_argument('-o', '--hide-outline', action = "store_true", help = "Hide the glyph outline")
+    parser.add_argument('-g', '--show-glyph', action = "store_true", help = "Show the glyph outline")
     parser.add_argument('-r', '--radius', action = "store", type = float, default = 5, help = "Radius of dots, in em units (default 5)")
     parser.add_argument('-s', '--spacing', action = "store", type = float, default = 3.0, help = "Spacing of dots, as a multiple of dot radius (default 3.0 for 300%%)")
     args = parser.parse_args()
