@@ -38,7 +38,7 @@ from generalfuncs import (
 )
 
 DEFAULT_FONT = '/usr/share/fonts/truetype/padauk/Padauk.ttf'
-DEFAULT_GLYPH = 'u1021'
+DEFAULT_GLYPH = None
 
 # ==============
 # This section is for functions that calculate and return a different data type
@@ -513,6 +513,23 @@ def silent_fontopen(fname):
     os.close(origstderr)
     return fontobj
 
+def create_dotted_font(fname):
+    input_font = silent_fontopen(fname)
+    global args
+    args.em = input_font.em
+    new_font = fontforge.font()
+    for glyphname in input_font:
+        print "Processing glyph named", glyphname
+        if glyphname in ('.notdef', '.null'): continue
+        glyph = input_font[glyphname]
+        glyph.unlinkRef()
+        new_glyph = new_font.createChar(glyph.encoding)
+        copy_glyph(glyph, new_glyph)
+    new_font.generate(args.output)
+    dots = extract_dots(glyph)
+    print "{} dots found".format(len(dots))
+    wait_for_keypress(args.em, args.zoom)
+
 def extraction_demo(fname, letter):
     font = silent_fontopen(fname)
     global args
@@ -528,7 +545,7 @@ def extraction_demo(fname, letter):
     new_font = fontforge.font()
     new_glyph = new_font.createChar(glyph.encoding)
     copy_glyph(glyph, new_glyph)
-    new_font.generate('output.ttf') # TODO: Make this a configurable parameter
+    new_font.generate(args.output)
     dots = extract_dots(glyph)
     print "{} dots found".format(len(dots))
     wait_for_keypress(args.em, args.zoom)
@@ -541,6 +558,7 @@ def extract_dots(glyph, show_glyph=True):
     alltriangles = []
     allmidpoints = []
     allmidlines = []
+    dots = []  # Default value for blank glyphs; will be overwritten if glyph is non-blank
     # Calculate stroke width by first extracting vectors with no subdivision;
     # then convert to a Shapely polygon and calculate stroke width via the
     # 2*area / length algorithm. Then re-extract vectors with the real
@@ -668,6 +686,7 @@ def parse_args():
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
     parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Font file (SFD or TTF format)")
     parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Glyph name (or Unicode codepoint in U+89AB format)")
+    parser.add_argument('-o', '--output', action = "store", default = "output.ttf", help = "Filename of output dotted TTF")
     parser.add_argument('-z', '--zoom', action = "store", type = float, default = 1.0, help = "Zoom level (default 1.0)")
     parser.add_argument('-m', '--minstrokewidth', action = "store", type = float, default = 1, help = "The minimum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
     parser.add_argument('-M', '--maxstrokewidth', action = "store", type = float, default = 1e100, help = "The maximum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
@@ -678,8 +697,6 @@ def parse_args():
     parser.add_argument('-r', '--radius', action = "store", type = float, default = 5, help = "Radius of dots, in em units (default 5)")
     parser.add_argument('-s', '--spacing', action = "store", type = float, default = 3.0, help = "Spacing of dots, as a multiple of dot radius (default 3.0 for 300%%)")
     args = parser.parse_args()
-    args.svgfilename = args.glyphname + '.svg'
-    args.datfilename = args.glyphname + '.dat'
     if not (args.show_triangles or args.show_lines or args.show_dots):
         parser.print_help()
         print
@@ -692,7 +709,10 @@ def main():
     a sanity check to make sure everything works properly."""
     global args
     args = parse_args()
-    extraction_demo(args.inputfilename, args.glyphname)
+    if args.glyphname is None:
+        create_dotted_font(args.inputfilename)
+    else:
+        extraction_demo(args.inputfilename, args.glyphname)
     return 0
 
 if __name__ == "__main__":
