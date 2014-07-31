@@ -563,7 +563,7 @@ def extract_dots(glyph, show_glyph=True):
     alltriangles = []
     allmidpoints = []
     allmidlines = []
-    dots = []  # Default value for blank glyphs; will be overwritten if glyph is non-blank
+    dots = []
     # Calculate stroke width by first extracting vectors with no subdivision;
     # then convert to a Shapely polygon and calculate stroke width via the
     # 2*area / length algorithm. Then re-extract vectors with the real
@@ -612,7 +612,7 @@ def extract_dots(glyph, show_glyph=True):
             real_trianglelines = list(filtertriangles(trianglelines, outlines_to_filter))
             midpoints = list(itermap_stopatvectors(averagepoint_as_tuplevector, real_trianglelines))
             midlines = list(calculate_midlines(midpoints))
-            dots = list(calculate_dots(midlines, args.radius, args.spacing))
+            dots.extend(calculate_dots(midlines, args.radius, args.spacing))
             if show_glyph and args.show_dots:
                 for dot in dots:
                     draw_fat_point(screen, dot, args.em, args.zoom, args.radius, color = blue)
