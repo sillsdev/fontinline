@@ -706,7 +706,7 @@ def parse_args():
     parser.add_argument('-d', '--show-dots', action = "store_true", help = "Show the dots that make the dotted version")
     parser.add_argument('-g', '--show-glyph', action = "store_true", help = "Show the glyph outline")
     parser.add_argument('-r', '--radius', action = "store", type = float, default = 15, help = "Radius of dots, in em units (default 15)")
-    parser.add_argument('-s', '--spacing', action = "store", type = float, default = 3.0, help = "Spacing of dots, as a multiple of dot radius (default 3.0 for 300%%)")
+    parser.add_argument('-s', '--spacing', action = "store", type = float, default = 6.0, help = "Spacing of dots, as a multiple of dot radius (default 6.0 for 600%%)")
     args = parser.parse_args()
     if not (args.show_triangles or args.show_lines or args.show_dots):
         parser.print_help()
