@@ -14,6 +14,7 @@ import collections
 import shapely
 import warnings
 import math
+import shutil
 from shapely.geometry import Polygon, LineString, Point
 
 from dataconvert import import_p2t
@@ -513,24 +514,19 @@ def silent_fontopen(fname):
     os.close(origstderr)
     return fontobj
 
-features_to_copy = """
-    ascent descent em encoding upos uwidth weight
-""".split()   # TODO: Find out if any other font features need to be copied
-
 def create_dotted_font(fname):
     input_font = silent_fontopen(fname)
     global args
     args.em = input_font.em
-    new_font = fontforge.font()
-    for feature in features_to_copy:
-        value = getattr(input_font, feature)
-        setattr(new_font, feature, value)
+    shutil.copy2(fname, args.output)
+    new_font = silent_fontopen(args.output)
     for glyphname in input_font:
         if glyphname in ('.notdef', '.null'): continue
         glyph = input_font[glyphname]
+        new_glyph = new_font[glyphname]
+        new_glyph.clear()
         print "Processing glyph at codepoint U+{:04X} named {}".format(glyph.encoding, glyphname)
         glyph.unlinkRef()
-        new_glyph = new_font.createChar(glyph.encoding)
         copy_glyph(glyph, new_glyph)
     font_type = args.output.lower().rsplit('.', 1)[-1]
     if font_type == 'sfd':
@@ -648,17 +644,13 @@ def extract_dots(glyph, show_glyph=True):
     return dots
 
 def copy_glyph(orig_glyph, new_glyph):
-    # (new_glyph was created with font.createChar(orig_glyph.encoding)
-    new_glyph.glyphname = orig_glyph.glyphname
-    dots = extract_dots(orig_glyph, args.visualize)  # TODO: Refactor extract_dots to remove drawing code or make it optional
+    dots = extract_dots(orig_glyph, args.visualize)
     for dot in dots:
         contour = circle_at(dot, size=args.radius)
+        contour.is_quadratic = new_glyph.foreground.is_quadratic
         new_glyph.foreground += contour
-    # Commented out because lookup subtables need to be copied before anchor
-    # points can be copied, and lookup subtables are a bit complex.
-    # TODO: Implement copying lookup subtables, then uncomment this.
-    #for anchor in orig_glyph.anchorPoints:
-    #    new_glyph.addAnchorPoint(*anchor)
+    for anchor in orig_glyph.anchorPoints:
+        new_glyph.addAnchorPoint(*anchor)
     return new_glyph  # Probably not needed as the font now contains it
 
 def make_triangles(polygon_data, holes = None):
