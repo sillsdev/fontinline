@@ -691,7 +691,7 @@ def parse_args():
         anything. Good values to try are -z 0.5 or -z 0.25 depending on the
         font you've selected.
         """, epilog = """
-        Example of usage: python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf U+aa75 -z 0.5 -dl
+        Example of usage: python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf -o trythis.ttf -r 12 -s 6.0
         """)
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
     parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Font file (SFD or TTF format)")
