@@ -15,9 +15,9 @@ import shapely
 import warnings
 import math
 from shapely.geometry import Polygon, LineString, Point
-sys.path.append('../../python-poly2tri')
-import p2t
-sys.path.remove('../../python-poly2tri')
+
+from dataconvert import import_p2t
+p2t = import_p2t()
 
 from dataconvert import (
     any_to_linestring, any_to_polygon, any_to_polyline, any_to_closedpolyline,

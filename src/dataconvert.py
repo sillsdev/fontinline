@@ -17,11 +17,52 @@ Formats used in our code:
 
 from shapely.geometry import Point, LineString, Polygon
 import itertools
-import sys
-sys.path.append('../../python-poly2tri')
-import p2t
-sys.path.remove('../../python-poly2tri')
+import sys, os
 from generalfuncs import pairwise
+
+def import_p2t():
+    """Find and import the p2t module, which might be in several possible locations:
+         * The current directory, or any ancestor directory
+         * A "python-poly2tri" directory based of the current dir or an ancestor
+    """
+    try:
+        import p2t
+    except ImportError:
+        pass  # Rest of function will hunt for it
+    else:
+        # Found it already, so just return it
+        return p2t
+    fname = 'p2t.so'
+    curdir = os.getcwd()
+    def check(path):
+        return os.path.exists(os.path.join(path, fname))
+    while True:
+        # Check both current dir and python-poly2tri folder
+        found = check(curdir)
+        if found:
+            sys.path.append(curdir)
+            import p2t
+            sys.path.remove(curdir)
+            return p2t
+        poly2tri_dir = os.path.join(curdir, 'python-poly2tri')
+        found = check(poly2tri_dir)
+        if found:
+            sys.path.append(poly2tri_dir)
+            import p2t
+            sys.path.remove(poly2tri_dir)
+            return p2t
+        parent = os.path.abspath(os.path.join(curdir, '..'))
+        if parent == curdir:
+            sys.stderr.write("ERROR: python-poly2tri library not found. Please install it from\n")
+            sys.stderr.write("https://github.com/hansent/python-poly2tri and follow its build\n")
+            sys.stderr.write("instructions to produce the p2t.so file, then copy p2t.so into\n")
+            sys.stderr.write("the same folder that contains extractpoints.py.\n")
+            raise ImportError, "Could not find python-poly2tri module"
+        curdir = parent
+        continue
+    return p2t # Should never reach here, but just in case
+
+p2t = import_p2t()
 
 def any_to_polyline(pointlist):
     """Given a point list in any format, convert it to a polyline."""
