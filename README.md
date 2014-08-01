@@ -47,3 +47,22 @@ TODO
 * If endpoint dots within 50% of another dot, drop other dot
     * (This calculation might be slightly tricky, but will be
       simplified if we keep track of endpoint dots specially)
+* Future ideas for possible improvement:
+    * Before dotting, run a smoothing algorithm on all segments (lines, curves)
+      so that, for example, the letter B in Padauk font will have its lower
+      curve look a bit smoother. (Difficulty: hard)
+    * At intersection points, look at the curve direction (2nd derivative)
+      of the lines leading into the intersection. Extend them with the same
+      2nd derivative and look at where those extended lines would naturally
+      intersect. (Difficulty: unknown)
+    * Looking at the letter H as it stands with current code, another smoothing
+      (or kink-removing) algorithm, applied to the vertical segments, might
+      straighten them out. This would require turning the 5 segments that
+      current code produces for H into 3 segments, by detecting the angle of
+      the joins and saying "Angle is less than X degrees, join these segments"
+      for smallish values of X (measured against the smoothly-extended lines).
+      (Difficulty: medium)
+    * After drawing intersections, we could also extend the endpoints of the
+      midlines (e.g., the starting and ending points in the letter C) and take
+      them, with the same "keep the second derivative similar" algorithm, all
+      the way until they intersect with one side of the tesselation triangle.
