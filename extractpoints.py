@@ -15,6 +15,7 @@ import shapely
 import warnings
 import math
 import shutil
+import textwrap
 from shapely.geometry import Polygon, LineString, Point
 
 from dataconvert import import_p2t
@@ -682,22 +683,32 @@ def debug(s, *args, **kwargs):
 
 def parse_args():
     "Parse the arguments the user passed in"
-    parser = argparse.ArgumentParser(description = """
-        This is a demo of creating a dotted font automatically, given an
-        existing font. The demo takes two required parameters, the font file
-        to work from and the name (or Unicode codepoint) of the glyph to use
-        in the demo. The -z or --zoom parameter is theoretically optional,
-        but is probably required in practice if you want to be able to see
-        anything. Good values to try are -z 0.5 or -z 0.25 depending on the
-        font you've selected.
-        """, epilog = """
-        Example of usage: python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf -o trythis.ttf -r 12 -s 6.0
-        """)
+    parser = argparse.ArgumentParser(description = textwrap.dedent("""
+        This software creates a dotted font from any given input font. After creating
+        the dotted font, you'll want to edit it by hand in FontForge to change the
+        font name, copyright information, and so on.
+
+        You'll want to use the -r and -s settings to adjust the radius and spacing
+        of the given dots. Spacing is in multiples of dot radius, and dot radius is
+        in "font units" (several hundred font units make up a single letter in a font).
+        Good values for radius are usually around 10-15, and good values for spacing
+        are usually around 2.5 to 10.0 or so.
+
+        Optionally, if you have PyGame installed (sudo apt-get install python-pygame)
+        you can use the -t, -l, -d or -g options to watch the dotted font creation.
+
+        Finally, if you give a glyph name (like "A") or Unicode codepoint (like U+0065)
+        as a second parameter to this software, it will render only that glyph. This
+        can be useful when tweaking your dot radius and spacing settings.
+        """), epilog = textwrap.dedent("""
+        Example of usage:
+        python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf -o trythis.ttf -r 12 -s 6.0
+        """), formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
-    parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Font file (SFD or TTF format)")
-    parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Glyph name (or Unicode codepoint in U+89AB format)")
+    parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Required: Font file (SFD or TTF format)")
+    parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Optional: Codepoint to render (in U+89AB form)")
     parser.add_argument('-o', '--output', action = "store", default = "output.ttf", help = "Filename of output dotted TTF")
-    parser.add_argument('-z', '--zoom', action = "store", type = float, default = 1.0, help = "Zoom level (default 1.0)")
+    parser.add_argument('-z', '--zoom', action = "store", type = float, default = 1.0, help = "Zoom level of visualization (default 1.0)")
     parser.add_argument('-m', '--minstrokewidth', action = "store", type = float, default = 1, help = "The minimum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
     parser.add_argument('-M', '--maxstrokewidth', action = "store", type = float, default = 1e100, help = "The maximum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
     parser.add_argument('-t', '--show-triangles', action = "store_true", help = "Show the glyph triangulation")
