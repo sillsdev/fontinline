@@ -4,7 +4,23 @@ fontinline
 Make inline stroke paths from an outline font
 
 Requirements (Debian/Ubuntu):
-    sudo apt-get install python-shapely python-pygame python-fontforge
+    sudo apt-get install git python-shapely python-fontforge cython build-essential python-dev
+    sudo apt-get install python-pygame  # Optional
+    git clone http://github.com/hansent/python-poly2tri
+    git clone http://github.com/sillsdev/fontinline
+    cd python-poly2tri
+    python setup.py build_ext -i
+    ls p2t.so || echo Something failed, fix it and rebuild p2t
+    cp p2t.so ../fontinline
+    cd ../fontinline
+    python extractpoints.py inputfont.ttf -o outputfont.ttf
+
+Note that python-pygame is optional: if you never use the "--show-foo" options
+(where foo can be triangles, lines, dots or glyph) or their one-letter short
+versions (-t, -l, -d or -g), then the pygame dependency will not be required.
+If you try to use those options and pygame is not installed, you'll see
+"ImportError: No module named pygame". If that happens, simply run the
+"sudo apt-get install python-pygame" command and try again.
 
 Code structure
 --------------
