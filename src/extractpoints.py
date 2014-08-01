@@ -538,6 +538,10 @@ def create_dotted_font(fname):
     else:
         new_font.generate(args.output)
     print "Dotted font created as", args.output
+    if args.visualize:
+        print "Press any key to exit"
+        import visualization
+        visualization.wait_for_keypress(args.em, args.zoom)
 
 def extraction_demo(fname, letter):
     font = silent_fontopen(fname)
@@ -551,12 +555,18 @@ def extraction_demo(fname, letter):
         codepoint = letter
     glyph = font[codepoint]
     glyph.unlinkRef()
-    dots = extract_dots(glyph)
+    dots = extract_dots(glyph, args.visualize)
     print "{} dots found".format(len(dots))
-    wait_for_keypress(args.em, args.zoom)
+    if args.visualize:
+        import visualization
+        visualization.wait_for_keypress(args.em, args.zoom)
 
 def extract_dots(glyph, show_glyph=True):
     global args
+    if args.visualize or show_glyph:
+        from visualization import (
+            setup_screen, draw_all, draw_midlines, red, green, blue, draw_fat_point,
+        )
     layer = glyph.foreground
     polylines = []
     polylines_to_draw = []
@@ -634,13 +644,13 @@ def extract_dots(glyph, show_glyph=True):
             polylinecolor = (blue if args.show_glyph else None),
             trianglecolor = (red if args.show_triangles else None))
     if args.show_lines:
-        draw_midlines(screen, allmidlines, midpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
+        draw_midlines(screen, allmidlines, allmidpoints, emsize = args.em, zoom = args.zoom, polylinecolor = green)
     return dots
 
 def copy_glyph(orig_glyph, new_glyph):
     # (new_glyph was created with font.createChar(orig_glyph.encoding)
     new_glyph.glyphname = orig_glyph.glyphname
-    dots = extract_dots(orig_glyph, False)  # TODO: Refactor extract_dots to remove drawing code or make it optional
+    dots = extract_dots(orig_glyph, args.visualize)  # TODO: Refactor extract_dots to remove drawing code or make it optional
     for dot in dots:
         contour = circle_at(dot, size=args.radius)
         new_glyph.foreground += contour
@@ -708,11 +718,7 @@ def parse_args():
     parser.add_argument('-r', '--radius', action = "store", type = float, default = 15, help = "Radius of dots, in em units (default 15)")
     parser.add_argument('-s', '--spacing', action = "store", type = float, default = 6.0, help = "Spacing of dots, as a multiple of dot radius (default 6.0 for 600%%)")
     args = parser.parse_args()
-    if not (args.show_triangles or args.show_lines or args.show_dots):
-        parser.print_help()
-        print
-        print "Error: Please use at least one of the -t, -l or -d options."
-        sys.exit(2)
+    args.visualize = (args.show_triangles or args.show_lines or args.show_dots or args.show_glyph)
     return args
 
 def main():
