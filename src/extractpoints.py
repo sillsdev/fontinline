@@ -654,10 +654,11 @@ def copy_glyph(orig_glyph, new_glyph):
     for dot in dots:
         contour = circle_at(dot, size=args.radius)
         new_glyph.foreground += contour
-    for anchor in orig_glyph.anchorPoints:
-        new_glyph.addAnchorPoint(*anchor)
-    # Or can we just do this?
-    # new_glyph.anchorPoints = orig_glyph.anchorPoints
+    # Commented out because lookup subtables need to be copied before anchor
+    # points can be copied, and lookup subtables are a bit complex.
+    # TODO: Implement copying lookup subtables, then uncomment this.
+    #for anchor in orig_glyph.anchorPoints:
+    #    new_glyph.addAnchorPoint(*anchor)
     return new_glyph  # Probably not needed as the font now contains it
 
 def make_triangles(polygon_data, holes = None):
