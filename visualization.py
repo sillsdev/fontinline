@@ -142,3 +142,5 @@ def draw_midlines(screen, polylines, midpoints, emsize = 1024, zoom = 1.0, polyl
             pygame.display.update()
     # Show result
 
+if __name__ == '__main__':
+    sys.stderr.write('Please run extractpoints.py, not this file.\n')

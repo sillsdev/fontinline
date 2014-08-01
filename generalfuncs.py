@@ -245,3 +245,6 @@ class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self # See http://stackoverflow.com/a/14620633/2314532
+
+if __name__ == '__main__':
+    sys.stderr.write('Please run extractpoints.py, not this file.\n')

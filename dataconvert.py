@@ -147,3 +147,6 @@ def p2ft(point):
     except AttributeError:
         x, y = point[0], point[1]
     return (x, y)
+
+if __name__ == '__main__':
+    sys.stderr.write('Please run extractpoints.py, not this file.\n')
