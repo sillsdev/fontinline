@@ -35,9 +35,6 @@ from generalfuncs import (
     center_of_triangle, circle_at,
 )
 
-DEFAULT_FONT = '/usr/share/fonts/truetype/padauk/Padauk.ttf'
-DEFAULT_GLYPH = None
-
 # ==============
 # This section is for functions that calculate and return a different data type
 # ==============
@@ -703,8 +700,8 @@ def parse_args():
         python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf -o trythis.ttf -r 12 -s 6.0
         """), formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
-    parser.add_argument("inputfilename", nargs = "?", default = DEFAULT_FONT, help = "Required: Font file (SFD or TTF format)")
-    parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Optional: Codepoint to render (in U+89AB form)")
+    parser.add_argument("inputfilename", nargs = "?", default = None, help = "Required: Font file (SFD or TTF format)")
+    parser.add_argument("glyphname", nargs = "?", default = None, help = "Optional: Codepoint to render (in U+89AB form)")
     parser.add_argument('-o', '--output', action = "store", default = "output.ttf", help = "Filename of output dotted TTF")
     parser.add_argument('-z', '--zoom', action = "store", type = float, default = 1.0, help = "Zoom level of visualization (default 1.0)")
     parser.add_argument('-m', '--minstrokewidth', action = "store", type = float, default = 1, help = "Used for fine-tuning results (advanced usage only)")
@@ -717,6 +714,8 @@ def parse_args():
     parser.add_argument('-s', '--spacing', action = "store", type = float, default = 6.0, help = "Spacing of dots, as a multiple of dot radius (default 6.0 for 600%%)")
     args = parser.parse_args()
     args.visualize = (args.show_triangles or args.show_lines or args.show_dots or args.show_glyph)
+    if args.inputfilename is None:
+        parser.print_help()
     return args
 
 def main():
@@ -724,6 +723,8 @@ def main():
     a sanity check to make sure everything works properly."""
     global args
     args = parse_args()
+    if args.inputfilename is None:
+        return 2
     if args.glyphname is None:
         create_dotted_font(args.inputfilename)
     else:
