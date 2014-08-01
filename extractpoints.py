@@ -25,10 +25,6 @@ from dataconvert import (
     convert_polyline_to_polytri_version,
     triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring,
 )
-from visualization import (
-    setup_screen, draw_all, draw_midlines, wait_for_keypress, red, green, blue,
-    draw_fat_point,
-)
 from generalfuncs import (
     pairwise, by_threes, flatten,
     vectorlength, are_points_equal, are_lines_equal,
