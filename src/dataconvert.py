@@ -33,7 +33,7 @@ def import_p2t():
         # Found it already, so just return it
         return p2t
     fname = 'p2t.so'
-    curdir = os.getcwd()
+    curdir = os.path.dirname(os.path.abspath(__file__))
     def check(path):
         return os.path.exists(os.path.join(path, fname))
     while True:
