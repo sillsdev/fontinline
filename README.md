@@ -38,3 +38,12 @@ On a high level, the fontinline code operates by the following method:
    * This uses the poly2tri Python library from http://github.com/hansent/python-poly2tri
 1. Consider each separate triangle of the Delauney triangulation. Throw out the triangle sides that coincide with the side of a glyph. Take the centerpoint of each remaining side, and draw straight lines between each centerpoint. This produces a rough, but generally quite accurate, "midline" for the glyph.
 1. Take the midline produced in the previous step and draw dots at a (tweakable) interval along each one.
+
+TODO
+----
+
+* Place dots at 0.0 and 1.0 of endpoints (sometimes they're not landing
+  at the end of the midlines, which seems like a bug)
+* If endpoint dots within 50% of another dot, drop other dot
+    * (This calculation might be slightly tricky, but will be
+      simplified if we keep track of endpoint dots specially)
