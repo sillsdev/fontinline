@@ -697,7 +697,7 @@ def parse_args():
         can be useful when tweaking your dot radius and spacing settings.
         """), epilog = textwrap.dedent("""
         Example of usage:
-        python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf -o trythis.ttf -r 12 -s 6.0
+        python extractpoints.py /usr/share/fonts/truetype/padauk/Padauk.ttf -o output.ttf -r 12 -s 6.0
         """), formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', '--verbose', action = "store_true", help = "Give more verbose error messages")
     parser.add_argument("inputfilename", nargs = "?", default = None, help = "Required: Font file (SFD or TTF format)")
