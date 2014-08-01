@@ -689,10 +689,8 @@ def parse_args():
         font name, copyright information, and so on.
 
         You'll want to use the -r and -s settings to adjust the radius and spacing
-        of the given dots. Spacing is in multiples of dot radius, and dot radius is
-        in "font units" (several hundred font units make up a single letter in a font).
-        Good values for radius are usually around 10-15, and good values for spacing
-        are usually around 2.5 to 10.0 or so.
+        of the given dots. Good values for radius are usually around 10-15, and good
+        values for spacing are usually around 2.5 to 10.0 or so.
 
         Optionally, if you have PyGame installed (sudo apt-get install python-pygame)
         you can use the -t, -l, -d or -g options to watch the dotted font creation.
@@ -709,8 +707,8 @@ def parse_args():
     parser.add_argument("glyphname", nargs = "?", default = DEFAULT_GLYPH, help = "Optional: Codepoint to render (in U+89AB form)")
     parser.add_argument('-o', '--output', action = "store", default = "output.ttf", help = "Filename of output dotted TTF")
     parser.add_argument('-z', '--zoom', action = "store", type = float, default = 1.0, help = "Zoom level of visualization (default 1.0)")
-    parser.add_argument('-m', '--minstrokewidth', action = "store", type = float, default = 1, help = "The minimum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
-    parser.add_argument('-M', '--maxstrokewidth', action = "store", type = float, default = 1e100, help = "The maximum stroke width (useful for fine-tuning the triangulation for certain glyphs, not required most of the time)")
+    parser.add_argument('-m', '--minstrokewidth', action = "store", type = float, default = 1, help = "Used for fine-tuning results (advanced usage only)")
+    parser.add_argument('-M', '--maxstrokewidth', action = "store", type = float, default = 1e100, help = "Used for fine-tuning results (advanced usage only)")
     parser.add_argument('-t', '--show-triangles', action = "store_true", help = "Show the glyph triangulation")
     parser.add_argument('-l', '--show-lines', action = "store_true", help = "Show the midlines of the glyph")
     parser.add_argument('-d', '--show-dots', action = "store_true", help = "Show the dots that make the dotted version")
