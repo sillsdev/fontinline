@@ -4,6 +4,7 @@ fontinline
 Make inline stroke paths from an outline font
 
 Requirements (Debian/Ubuntu):
+
     sudo apt-get install git python-shapely python-fontforge cython build-essential python-dev
     sudo apt-get install python-pygame  # Optional
     git clone http://github.com/hansent/python-poly2tri
