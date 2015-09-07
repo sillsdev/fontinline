@@ -13,6 +13,8 @@ import functools
 import collections
 import shapely
 import warnings
+warnings.filterwarnings("ignore", "The _posixsubprocess module is not being used", RuntimeWarning)
+import subprocess32
 import math
 import shutil
 import textwrap
@@ -657,10 +659,14 @@ def copy_glyph(orig_glyph, new_glyph):
         new_glyph.addAnchorPoint(*anchor)
     return new_glyph  # Probably not needed as the font now contains it
 
-def make_triangles(polygon_data, holes = None):
+def make_triangles_unsafe(polygon_data, holes = None):
     """This function takes a dictionary, and an optional holes parameter
     that determines the holes of a polyline, and tesselates the polyline
     into triangles. This is an intermediate step to calculating the midpoints"""
+    # NOTE: Renamed function to _unsafe because some badly-designed fonts can
+    # cause an infinite loop in the cdt.triangulate() call. Later, we'll add
+    # a user option called "safe mode" that calls this in a separate process,
+    # which is much safer but is also much slower.
     if holes is None:
         holes = []
     triangles = []
@@ -680,6 +686,42 @@ def make_triangles(polygon_data, holes = None):
         hole = convert_polyline_to_polytri_version(hole)
         cdt.add_hole(hole)
     triangles.extend(cdt.triangulate())
+    return triangles
+
+def make_triangles(polygon_data, holes = None, timeout = 3.0):
+    """This function takes a dictionary, and an optional holes parameter
+    that determines the holes of a polyline, and tesselates the polyline
+    into triangles. This is an intermediate step to calculating the midpoints.
+    NOTE: Because this step can sometimes be thrown into an infinite loop by
+    some badly-designed glyphs, the timeout parameter (in seconds) indicates
+    how long to wait for the triangulation step to finish."""
+    if holes is None:
+        holes = []
+    triangles = []
+    polyline = any_to_polyline(polygon_data['line'])
+    converted_holes = list(any_to_polyline(hole['line']) for hole in holes)
+    process_input = "\n".join(str(p) for p in polyline)
+    for hole in converted_holes:
+        process_input += "\nHOLE:\n"
+        process_input += "\n".join(str(p) for p in hole)
+    process = subprocess32.Popen(
+            ['python', 'make_triangles.py'],
+            stdin=subprocess32.PIPE,
+            stdout=subprocess32.PIPE,
+            stderr=subprocess32.PIPE)
+    try:
+        out, err = process.communicate(process_input, timeout)
+    except subprocess32.TimeoutExpired:
+        process.kill()
+        print("WARNING: Glyph processing failed for this glyph.")
+        out, err = process.communicate()
+    for line in out.splitlines():
+        # Each output line is [(ax,ay), (bx,by), (cx,cy)]
+        parts = line.strip().lstrip('[').rstrip(']').split(',')
+        if len(parts) != 6:
+            continue
+        ax, ay, bx, by, cx, cy = [float(s.strip().strip("()")) for s in parts]
+        triangles.append([(ax,ay), (bx,by), (cx,cy)])
     return triangles
 
 DEBUG = True
