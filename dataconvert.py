@@ -109,9 +109,13 @@ def convert_polyline_to_polytri_version(polyline):
     result = []
     if hasattr(polyline, 'coords'):
         polyline = polyline.coords
+    last_point = (None, None)
     for point in polyline:
         x, y = ux(point), uy(point)
-        result.append(p2t.Point(x, y))
+        # Sanity-check: sometime fonts have invalid contours with the same point repeated twice
+        if (x, y) != last_point:
+            result.append(p2t.Point(x, y))
+        last_point = (x, y)
     return result
 
 def vectorpairs_to_pointlist(pairs):
