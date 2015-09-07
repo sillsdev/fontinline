@@ -28,7 +28,7 @@ from dataconvert import (
 )
 from generalfuncs import (
     pairwise, by_threes, flatten,
-    vectorlength, are_points_equal, are_lines_equal,
+    vectorlength, are_points_equal, are_lines_equal, is_sane_contour,
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
@@ -572,6 +572,10 @@ def extract_dots(glyph, show_glyph=True):
     # Extract vectors with the real stroke width now
     approx_outlines = []
     for contour in layer:
+        if not is_sane_contour(contour):
+            print("Skipping invalid contour:")
+            print(", ".join(str((p.x, p.y)) for p in contour))
+            continue
         points = extrapolate_midpoints(list(contour))
         approx_vectors = extract_vectors(points)
         linestring = vectorpairs_to_linestring(approx_vectors)
@@ -657,7 +661,10 @@ def make_triangles(polygon_data, holes = None):
     new_polyline = convert_polyline_to_polytri_version(polygon_data['line'])
     if are_points_equal(new_polyline[-1], new_polyline[0]):
         del new_polyline[-1]
+    #print("About to call p2t with polyline:")
+    #print(", ".join(str((p.x, p.y)) for p in new_polyline))
     cdt = p2t.CDT(new_polyline)
+    #print("Just called p2t")
     for hole_data in holes:
         hole = hole_data['line']
         if hasattr(hole, 'coords'):

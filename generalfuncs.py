@@ -33,6 +33,18 @@ def vectorlength(point1, point2):
     length = squaredlength**0.5
     return length
 
+def is_sane_contour(contour):
+    """Takes a contour in Fontforge format, and makes sure that it's sane.
+    One way contours can be insane is if all their points have the same x
+    coordinate, or the same y coordinate. This produces a glyph with no area,
+    which causes the poly2tri operation to segfault."""
+    x1, y1 = contour[0].x, contour[0].y
+    if (all(p.x == x1 for p in contour)):
+        return False
+    if (all(p.y == y1 for p in contour)):
+        return False
+    return True
+
 def ux(p):
     """Extract the x value of a point in any format"""
     try:
