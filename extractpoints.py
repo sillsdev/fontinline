@@ -24,10 +24,10 @@ p2t = import_p2t()
 from dataconvert import (
     any_to_linestring, any_to_polygon, any_to_polyline, any_to_closedpolyline,
     convert_polyline_to_polytri_version,
-    triangle2lines, vectorpairs_to_pointlist, vectorpairs_to_linestring,
+    triangle2lines, triangle2threepoints, vectorpairs_to_pointlist, vectorpairs_to_linestring,
 )
 from generalfuncs import (
-    pairwise, by_threes, flatten,
+    pairwise, by_threes, flatten, ux, uy,
     vectorlength, are_points_equal, are_lines_equal, is_sane_contour,
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, iterfilter_stopatvectors, itermap_stopatvectors,
@@ -152,8 +152,8 @@ def subdivideline(points, n):
         raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i = 0
     while i <= n:
-        result1 = (n-i)*points[0].x + i*points[1].x
-        result2 = (n-i)*points[0].y + i*points[1].y
+        result1 = (n-i)*ux(points[0]) + i*ux(points[1])
+        result2 = (n-i)*uy(points[0]) + i*uy(points[1])
         yield fontforge.point(result1/float(n), result2/float(n), True)
         i += 1
 
@@ -166,8 +166,8 @@ def subdividebezier(points, n):
         raise ValueError("you cannot subdivide into a non-integer number of pieces")
     i = 0
     while i <= n:
-        result1 = ((n-i)**2)*points[0].x + 2*i*(n-i)*points[1].x + i*i*points[2].x
-        result2 = ((n-i)**2)*points[0].y + 2*i*(n-i)*points[1].y + i*i*points[2].y
+        result1 = ((n-i)**2)*ux(points[0]) + 2*i*(n-i)*ux(points[1]) + i*i*ux(points[2])
+        result2 = ((n-i)**2)*uy(points[0]) + 2*i*(n-i)*uy(points[1]) + i*i*uy(points[2])
         yield fontforge.point(result1/float(n*n), result2/float(n*n), True)
         i += 1
 
@@ -574,7 +574,7 @@ def extract_dots(glyph, show_glyph=True):
     for contour in layer:
         if not is_sane_contour(contour):
             print("Skipping invalid contour:")
-            print(", ".join(str((p.x, p.y)) for p in contour))
+            print(", ".join(str((ux(p), uy(p))) for p in contour))
             continue
         points = extrapolate_midpoints(list(contour))
         approx_vectors = extract_vectors(points)

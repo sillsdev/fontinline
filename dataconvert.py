@@ -18,7 +18,7 @@ Formats used in our code:
 from shapely.geometry import Point, LineString, Polygon
 import itertools
 import sys, os
-from generalfuncs import pairwise
+from generalfuncs import pairwise, ux, uy
 
 def import_p2t():
     """Find and import the p2t module, which might be in several possible locations:
@@ -110,10 +110,7 @@ def convert_polyline_to_polytri_version(polyline):
     if hasattr(polyline, 'coords'):
         polyline = polyline.coords
     for point in polyline:
-        try:
-            x, y = point.x, point.y
-        except AttributeError:
-            x, y = point[0], point[1]
+        x, y = ux(point), uy(point)
         result.append(p2t.Point(x, y))
     return result
 
@@ -134,10 +131,34 @@ def vectorpairs_to_linestring(pairs):
         del points[-1]
     return any_to_linestring(points)
 
+def get_triangle_point(t, pnum):
+    "Get point N of a triangle, no matter the triangle's input format"
+    is_tuple = False
+    try:
+        t.a
+    except AttributeError:
+        is_tuple = True
+    if (is_tuple):
+        return t[pnum]
+    else:
+        if pnum == 0:   return t.a
+        elif pnum == 1: return t.b
+        elif pnum == 2: return t.c
+        else: return t.a
+
+def triangle2threepoints(t):
+    a = get_triangle_point(t, 0)
+    b = get_triangle_point(t, 1)
+    c = get_triangle_point(t, 2)
+    return [(ux(a), uy(a)), (ux(b), uy(b)), (ux(c), uy(c))]
+
 def triangle2lines(t):
-    l1 = [p2ft(t.a), p2ft(t.b)]
-    l2 = [p2ft(t.b), p2ft(t.c)]
-    l3 = [p2ft(t.c), p2ft(t.a)]
+    a = get_triangle_point(t, 0)
+    b = get_triangle_point(t, 1)
+    c = get_triangle_point(t, 2)
+    l1 = [p2ft(a), p2ft(b)]
+    l2 = [p2ft(b), p2ft(c)]
+    l3 = [p2ft(c), p2ft(a)]
     return [l1, l2, l3]
 
 def p2ft(point):

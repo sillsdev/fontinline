@@ -7,7 +7,8 @@ import itertools
 import time
 from pygame.locals import QUIT, KEYDOWN, MOUSEBUTTONDOWN
 from pygame.gfxdraw import trigon, line, pixel, filled_circle
-from generalfuncs import pairwise
+from generalfuncs import pairwise, ux, uy
+from dataconvert import get_triangle_point
 
 red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
@@ -56,19 +57,8 @@ def flip_polyline(polylinelist, emsize):
     return result
 
 def draw_fat_point(screen, point, emsize = 1024, zoom = 1.0, radius = 4, color = red):
-    try:
-        x = int(point.x * zoom)
-        y = int((emsize-point.y) * zoom)
-    except AttributeError:
-        x = int(point[0] * zoom)
-        y = int((emsize-point[1]) * zoom)
-    except TypeError:
-        try:
-            x = int(point.x * zoom)
-            y = int((emsize-point.y) * zoom)
-        except AttributeError:
-            x = int(point[0] * zoom)
-            y = int((emsize-point[1]) * zoom)
+    x = int(ux(point) * zoom)
+    y = int((emsize-uy(point)) * zoom)
     # Radius given in em units; convert to screen units
     screen_height = screen.get_size()[1]
     pixel_radius = radius * screen_height / float(emsize)
@@ -81,12 +71,15 @@ def draw_all(screen, polylines, holes, triangles, emsize = 1024, zoom = 1.0, pol
 
     if trianglecolor is not None:
         for t in triangles:
-            x1 = int(t.a.x * zoom)
-            y1 = int((emsize-t.a.y) * zoom)
-            x2 = int(t.b.x * zoom)
-            y2 = int((emsize-t.b.y) * zoom)
-            x3 = int(t.c.x * zoom)
-            y3 = int((emsize-t.c.y) * zoom)
+            a = get_triangle_point(t, 0)
+            b = get_triangle_point(t, 1)
+            c = get_triangle_point(t, 2)
+            x1 = int(ux(a) * zoom)
+            y1 = int((emsize-uy(a)) * zoom)
+            x2 = int(ux(b) * zoom)
+            y2 = int((emsize-uy(b)) * zoom)
+            x3 = int(ux(c) * zoom)
+            y3 = int((emsize-uy(c)) * zoom)
             trigon(screen, x1, y1, x2, y2, x3, y3, trianglecolor)
 
     # Close the polylines loop again prior to drawing
