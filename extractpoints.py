@@ -482,6 +482,12 @@ def calculate_dots(midlines, radius, spacing):
         linestrings.append(any_to_linestring(vectorpairs_to_pointlist(line)))
     dots = []
     for line in linestrings:
+        if line.length <= 0.0:
+            # Yes, it can happen on some badly-designed fonts
+            print("WARNING: This glyph likely needs attention from a font designer.")
+            dot = line.interpolate(0.0)
+            dots.append(dot)
+            continue
         numdots = math.floor(line.length / float(unit_spacing))
         if numdots < 1.0:
             numdots = 1.0
