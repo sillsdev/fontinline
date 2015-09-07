@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 """Library for visualizing our results"""
 
@@ -35,7 +35,7 @@ def wait_for_keypress(emsize = 1024, zoom = 1.0):
             # Reconstruct glyph coords from screen coords
             x = float(x) / zoom
             y = emsize-(float(y) / zoom)
-            print (x, y)
+            print((x, y))
             import sys
             sys.stdout.flush()
             continue
@@ -126,7 +126,7 @@ def draw_midlines(screen, polylines, midpoints, emsize = 1024, zoom = 1.0, polyl
     #for m in midpoints:
         #x = int(m[0] * zoom)
         #y = int((emsize-m[1]) * zoom)
-        #print (x, y)
+        #print((x, y))
         #pixel(screen, x, y, midpointcolor)
 
     # Close the polylines loop again prior to drawing

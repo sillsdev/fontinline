@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 """Library for converting lines and polygons between various formats
 
@@ -95,7 +95,7 @@ def any_to_linestring(pointlist):
     try:
         return LineString(any_to_polyline(pointlist))
     except ValueError:
-        print str(list(pointlist))
+        print(str(list(pointlist)))
         raise
 
 def any_to_polygon(outside, holes):

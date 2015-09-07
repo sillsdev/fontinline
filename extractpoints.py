@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import division
+from __future__ import division, print_function
 
 import fontforge
 import time
@@ -427,7 +427,7 @@ def calculate_midlines(midpoints):
         # it earlier in the next_point(curpt) call.
         start_from = find_centerpoint(curpt)
         if start_from is None:
-            print "find_centerpoint({}) failed...".format(curpt)
+            print("find_centerpoint({}) failed...".format(curpt))
             start_from = curpt
             edit_line_after_recording = False
         else:
@@ -519,7 +519,7 @@ def create_dotted_font(fname):
         glyph = input_font[glyphname]
         new_glyph = new_font[glyphname]
         new_glyph.clear()
-        print "Processing glyph at codepoint U+{:04X} named {}".format(glyph.encoding, glyphname)
+        print("Processing glyph at codepoint U+{:04X} named {}".format(glyph.encoding, glyphname))
         glyph.unlinkRef()
         copy_glyph(glyph, new_glyph)
     font_type = args.output.lower().rsplit('.', 1)[-1]
@@ -527,9 +527,9 @@ def create_dotted_font(fname):
         new_font.save(args.output)
     else:
         new_font.generate(args.output)
-    print "Dotted font created as", args.output
+    print("Dotted font created as", args.output)
     if args.visualize:
-        print "Press any key to exit"
+        print("Press any key to exit")
         import visualization
         visualization.wait_for_keypress(args.em, args.zoom)
 
@@ -546,7 +546,7 @@ def extraction_demo(fname, letter):
     glyph = font[codepoint]
     glyph.unlinkRef()
     dots = extract_dots(glyph, args.visualize)
-    print "{} dots found".format(len(dots))
+    print("{} dots found".format(len(dots)))
     if args.visualize:
         import visualization
         visualization.wait_for_keypress(args.em, args.zoom)
@@ -674,9 +674,9 @@ def debug(s, *args, **kwargs):
     if not DEBUG:
         return
     if not args and not kwargs:
-        print s
+        print(s)
     else:
-        print s.format(*args, **kwargs)
+        print(s.format(*args, **kwargs))
 
 def parse_args():
     "Parse the arguments the user passed in"
