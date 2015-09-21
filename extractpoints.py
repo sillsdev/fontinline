@@ -520,8 +520,21 @@ def create_dotted_font(fname):
     input_font = silent_fontopen(fname)
     global args
     args.em = input_font.em
+    if args.font_name:
+        new_familyname = args.font_name
+    else:
+        new_familyname = input_font.familyname + " Dotted"
+        print("WARNING: New font name \"{}\" does NOT comply with the Open Font License!!".format(new_familyname))
+        print("Please press Enter to proceed anyway, or Ctrl-C to exit.")
+        print("By proceeding, you acknowledge that you do NOT intend to distribute this font to anyone else.")
+        raw_input()
+    new_fullname = input_font.fullname.replace(input_font.familyname, new_familyname)
+    new_fontname = new_fullname.translate(None, " \t()[]{}<>/%")
     shutil.copy2(fname, args.output)
     new_font = silent_fontopen(args.output)
+    new_font.familyname = new_familyname
+    new_font.fullname = new_fullname
+    new_font.fontname = new_fontname
     for glyphname in input_font:
         if glyphname in ('.notdef', '.null'): continue
         glyph = input_font[glyphname]
@@ -650,6 +663,8 @@ def extract_dots(glyph, show_glyph=True):
     return dots
 
 def copy_glyph(orig_glyph, new_glyph):
+    new_glyph.width = orig_glyph.width
+    new_glyph.vwidth = orig_glyph.vwidth
     dots = extract_dots(orig_glyph, args.visualize)
     for dot in dots:
         contour = circle_at(dot, size=args.radius)
@@ -657,6 +672,9 @@ def copy_glyph(orig_glyph, new_glyph):
         new_glyph.foreground += contour
     for anchor in orig_glyph.anchorPoints:
         new_glyph.addAnchorPoint(*anchor)
+    if args.copy_bearings:
+        new_glyph.left_side_bearing = orig_glyph.left_side_bearing
+        new_glyph.right_side_bearing = orig_glyph.right_side_bearing
     return new_glyph  # Probably not needed as the font now contains it
 
 def make_triangles_unsafe(polygon_data, holes = None):
@@ -767,6 +785,8 @@ def parse_args():
     parser.add_argument('-g', '--show-glyph', action = "store_true", help = "Show the glyph outline")
     parser.add_argument('-r', '--radius', action = "store", type = float, default = 12, help = "Radius of dots, in em units (default 12)")
     parser.add_argument('-s', '--spacing', action = "store", type = float, default = 6.0, help = "Spacing of dots, as a multiple of dot radius (default 6.0 for 600%%)")
+    parser.add_argument('-b', '--copy-bearings', action = "store_true", help = "Copy left/right side bearings of glyphs to new font (default is to calculate them automatically, use this to copy them from the old font instead)")
+    parser.add_argument('-n', '--font-name', action = "store", type = str, default = "", help = "New font name (REQUIRED if you plan to distribute this font to others, as the default is to use \"(orignal name) Dotted\", which is NOT OFL-compliant)")
     args = parser.parse_args()
     args.visualize = (args.show_triangles or args.show_lines or args.show_dots or args.show_glyph)
     if args.inputfilename is None:
