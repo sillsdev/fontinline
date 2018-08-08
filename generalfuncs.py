@@ -45,6 +45,17 @@ def is_sane_contour(contour):
         return False
     return True
 
+def scale_by(contour, scale_matrix):
+    """Takes a contour in Fontforge format, and scales it by the given matrix.
+    NOTE: Changes contour in-place since that's what Fontforge does.
+    If "scale_matrix" arg is None, then returns contour unchanged.
+    """
+    if scale_matrix is not None:
+        contour.transform(scale_matrix)
+
+def debug_dump(contour):
+    print(", ".join(str((ux(p), uy(p))) for p in contour))
+
 def ux(p):
     """Extract the x value of a point in any format"""
     try:

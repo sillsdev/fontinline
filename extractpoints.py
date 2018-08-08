@@ -3,6 +3,7 @@
 from __future__ import division, print_function
 
 import fontforge
+import psMat
 import time
 import optparse
 import argparse
@@ -34,7 +35,7 @@ from generalfuncs import (
     averagepoint_as_ffpoint, averagepoint_as_tuple, averagepoint_as_tuplevector,
     comp, iterfilter_stopatvectors, itermap_stopatvectors,
     AttrDict, closer, closerish, further, angle, similar_direction, shallow_angle,
-    center_of_triangle, circle_at,
+    center_of_triangle, circle_at, scale_by, debug_dump,
 )
 
 # ==============
@@ -595,8 +596,9 @@ def extract_dots(glyph, show_glyph=True):
     for contour in layer:
         if not is_sane_contour(contour):
             print("Skipping invalid contour:")
-            print(", ".join(str((ux(p), uy(p))) for p in contour))
+            debug_dump(contour)
             continue
+        scale_by(contour, args.scale_matrix)
         points = extrapolate_midpoints(list(contour))
         approx_vectors = extract_vectors(points)
         linestring = vectorpairs_to_linestring(approx_vectors)
@@ -785,6 +787,7 @@ def parse_args():
     parser.add_argument('-g', '--show-glyph', action = "store_true", help = "Show the glyph outline")
     parser.add_argument('-r', '--radius', action = "store", type = float, default = 12, help = "Radius of dots, in em units (default 12)")
     parser.add_argument('-s', '--spacing', action = "store", type = float, default = 6.0, help = "Spacing of dots, as a multiple of dot radius (default 6.0 for 600%%)")
+    parser.add_argument('-S', '--scale', action = "store", type = float, default = 1.0, help = "How much to scale the original font before making dotted version (0.5 means 50%%, 2.0 means 200%%) (default 1.0 for 100%%)")
     parser.add_argument('-b', '--copy-bearings', action = "store_true", help = "Copy left/right side bearings of glyphs to new font (default is to calculate them automatically, use this to copy them from the old font instead)")
     parser.add_argument('-n', '--font-name', action = "store", type = str, default = "", help = "New font name (REQUIRED if you plan to distribute this font to others, as the default is to use \"(orignal name) Dotted\", which is NOT OFL-compliant)")
     args = parser.parse_args()
@@ -793,6 +796,12 @@ def parse_args():
         parser.print_help()
     return args
 
+def calculate_matrix(scale):
+    if scale == 1.0:
+        return None
+    else:
+        return psMat.scale(scale)
+
 def main():
     """This is the main function we use that calls extraction_demo and also runs
     a sanity check to make sure everything works properly."""
@@ -800,6 +809,7 @@ def main():
     args = parse_args()
     if args.inputfilename is None:
         return 2
+    args.scale_matrix = calculate_matrix(args.scale)
     if args.glyphname is None:
         create_dotted_font(args.inputfilename)
     else:
